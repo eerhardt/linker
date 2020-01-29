@@ -1908,6 +1908,10 @@ namespace Mono.Linker.Steps {
 			if (CheckProcessed (method))
 				return;
 
+			if (method.Name == "DoLazy") {
+				Debugger.Break ();
+			}
+
 			Tracer.Push (method);
 			MarkType (method.DeclaringType);
 			MarkCustomAttributes (method);

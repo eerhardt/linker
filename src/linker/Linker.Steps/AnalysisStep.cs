@@ -1,6 +1,7 @@
 ﻿using Mono.Cecil;
 using Mono.Linker.Analysis;
 using System.IO;
+using System.Linq;
 
 namespace Mono.Linker.Steps
 {
@@ -25,7 +26,14 @@ namespace Mono.Linker.Steps
 
 		protected override void Process ()
 		{
-			var apiFilter = new ApiFilter (reflectionPatternRecorder.UnanalyzedMethods, entryPointsStep.EntryPoints);
+			var annotations = new ApiAnnotations ();
+			foreach (var analysisConfigFile in Directory.EnumerateFiles (
+				Path.GetDirectoryName (entryPointsStep.EntryPoints.First ().Module.FileName),
+				"*.linkeranalysis.jsonc")) {
+				annotations.LoadConfiguration (analysisConfigFile);
+			}
+
+			var apiFilter = new ApiFilter (reflectionPatternRecorder.UnanalyzedMethods, entryPointsStep.EntryPoints, annotations);
 			var cg = new CallGraph (callgraphDependencyRecorder.Dependencies, apiFilter);
 
 			string jsonFile = Path.Combine (context.OutputDirectory, "trimanalysis.json");

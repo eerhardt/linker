@@ -178,16 +178,18 @@ namespace Mono.Linker.Analysis
 
 		private readonly List<MethodDefinition> unanalyzedMethods;
 		private readonly HashSet<MethodDefinition> entryMethods;
+		readonly ApiAnnotations annotations;
 
 		public ApiFilter ()
 		{
 			// don't use any predetermined unanalyzed methods (from the linker)
 		}
 
-		public ApiFilter (List<MethodDefinition> unanalyzedMethods, HashSet<MethodDefinition> entryMethods)
+		public ApiFilter (List<MethodDefinition> unanalyzedMethods, HashSet<MethodDefinition> entryMethods, ApiAnnotations annotations)
 		{
 			this.unanalyzedMethods = unanalyzedMethods;
 			this.entryMethods = entryMethods;
+			this.annotations = annotations;
 		}
 
 		public bool IsEntryMethod (MethodDefinition method)
@@ -298,21 +300,26 @@ namespace Mono.Linker.Analysis
 				return reason;
 			}
 
-			// 5. Lazy<T> usage of Activator.CreateInstance
-			if (method.DeclaringType.FullName == "System.Lazy`1" &&
-				method.Name == ".ctor") {
-				if (method.Parameters.Count == 0 ||
-					(method.Parameters.Count == 1 && method.Parameters [0].ParameterType.FullName == "System.Boolean") ||
-					(method.Parameters.Count == 1 && method.Parameters [0].ParameterType.FullName == "System.Threading.LazyThreadSafetyMode")) {
-					// Lazy<T>.ctor()
-					// Lazy<T>.ctor(bool)
-					// Lazy<T>.ctor(LazyThreadSafetyMode)
-					// all these ctors create Lazy<T> which will end up calling Activator.CreateInstance<T> which is currently unanalyzable.
-					// Since we marked the internal helper which actually calls the CreateInstance as safe (to avoid reporting cases
-					// where safe ctors are called), we need to mark the dangerous ctors as unsafe.
-					return InterestingReason.LazyOfT;
-				}
+			reason = annotations.GetReasonForAnnotation (method);
+			if (reason != InterestingReason.None) {
+				return reason;
 			}
+
+			// 5. Lazy<T> usage of Activator.CreateInstance
+			//if (method.DeclaringType.FullName == "System.Lazy`1" &&
+			//	method.Name == ".ctor") {
+			//	if (method.Parameters.Count == 0 ||
+			//		(method.Parameters.Count == 1 && method.Parameters [0].ParameterType.FullName == "System.Boolean") ||
+			//		(method.Parameters.Count == 1 && method.Parameters [0].ParameterType.FullName == "System.Threading.LazyThreadSafetyMode")) {
+			//		// Lazy<T>.ctor()
+			//		// Lazy<T>.ctor(bool)
+			//		// Lazy<T>.ctor(LazyThreadSafetyMode)
+			//		// all these ctors create Lazy<T> which will end up calling Activator.CreateInstance<T> which is currently unanalyzable.
+			//		// Since we marked the internal helper which actually calls the CreateInstance as safe (to avoid reporting cases
+			//		// where safe ctors are called), we need to mark the dangerous ctors as unsafe.
+			//		return InterestingReason.LazyOfT;
+			//	}
+			//}
 			if (method.DeclaringType.FullName == "System.LazyHelper" &&
 				method.Name == "CreateViaDefaultConstructor") {
 				// Lazy<T> has a set of ctors which create the object based on a Func, those are perfectly safe

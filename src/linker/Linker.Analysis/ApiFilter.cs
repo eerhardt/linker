@@ -162,34 +162,20 @@ namespace Mono.Linker.Analysis
 
 	public class ApiFilter
 	{
-		// a few of the "reasons" are given special semantics wrt LinkerUnanalyzed:
-		// most attributes take precedence over LinkerUnanalyzed.
-		// these "big hammers" are lower precedence than LinkerUnanalyzed - so if an API
-		// marked with a "big hammer" is also LinkerUnanalyzed, it will show up as
-		// LinkerUnanalyzed in the output.
-		public bool IsBigHammer (InterestingReason reason)
-		{
-			return (reason == InterestingReason.EventSourceBigHammer ||
-					reason == InterestingReason.SerializationBigHammer ||
-					reason == InterestingReason.KnownReflection ||
-					reason == InterestingReason.ToInvestigate);
-		}
-
-
-		private readonly List<MethodDefinition> unanalyzedMethods;
-		private readonly HashSet<MethodDefinition> entryMethods;
-		readonly ApiAnnotations annotations;
+		readonly Dictionary<MethodDefinition, string> unanalyzedMethods;
+		readonly HashSet<MethodDefinition> entryMethods;
+		readonly ApiAnnotations apiAnnotations;
 
 		public ApiFilter ()
 		{
 			// don't use any predetermined unanalyzed methods (from the linker)
 		}
 
-		public ApiFilter (List<MethodDefinition> unanalyzedMethods, HashSet<MethodDefinition> entryMethods, ApiAnnotations annotations)
+		public ApiFilter (Dictionary<MethodDefinition, string> unanalyzedMethods, HashSet<MethodDefinition> entryMethods, ApiAnnotations apiAnnotations)
 		{
 			this.unanalyzedMethods = unanalyzedMethods;
 			this.entryMethods = entryMethods;
-			this.annotations = annotations;
+			this.apiAnnotations = apiAnnotations;
 		}
 
 		public bool IsEntryMethod (MethodDefinition method)
@@ -206,29 +192,57 @@ namespace Mono.Linker.Analysis
 			return false;
 		}
 
-		public bool IsLinkerUnanalyzedReflectionMethod (MethodDefinition method)
+		public bool IsInterestingMethod (MethodDefinition method)
 		{
-			if (unanalyzedMethods == null) {
-				return false;
-			}
-
-			return unanalyzedMethods.Contains (method);
+			return GetApiAnnotation (method) != null;
 		}
 
 		public bool IsAnnotatedLinkerFriendlyApi (MethodDefinition method)
 		{
-			var reason = GetInterestingReasonFromAnnotationToInvestigate (method);
-			if (reason == InterestingReason.AnnotatedLinkerFriendly) {
-				return true;
-			}
-			reason = ReflectionApis.GetInterestingReasonForReflectionApi (method);
-			if (reason == InterestingReason.AnnotatedLinkerFriendly) {
-				throw new Exception ("not expected");
-			}
-			return false;
+			return GetApiAnnotation (method) is SuppressApiAnnotation;
 		}
 
-		public InterestingReason GetInterestingReasonFromAnnotationToInvestigate (MethodDefinition method)
+		public ApiAnnotation GetApiAnnotation (MethodDefinition method)
+		{
+			if (unanalyzedMethods.TryGetValue (method, out var message)) {
+				return new WarnApiAnnotation () {
+					TypeFullName = method.DeclaringType.FullName,
+					MethodNames = new string [] { method.Name },
+					Aspect = CodeReadinessAspect.None,
+					Category = nameof(InterestingReason.LinkerUnanalyzed),
+					Message = message
+				};
+			}
+
+			ApiAnnotation annotation = this.apiAnnotations.GetAnnotation (method, CodeReadinessAspect.MemberTrim);
+			if (annotation != null) {
+				return annotation;
+			}
+
+			InterestingReason reason = GetInterestingReason (method);
+			if (reason == InterestingReason.AnnotatedLinkerFriendly) {
+				return new SuppressApiAnnotation () {
+					TypeFullName = method.DeclaringType.FullName,
+					MethodNames = new string [] { method.Name },
+					Aspect = CodeReadinessAspect.None,
+					Category = reason.ToString (),
+					Reason = reason.ToString ()
+				};
+			}
+			else if (reason != InterestingReason.None) {
+				return new WarnApiAnnotation () {
+					TypeFullName = method.DeclaringType.FullName,
+					MethodNames = new string [] { method.Name },
+					Aspect = CodeReadinessAspect.None,
+					Category = reason.ToString (),
+					Message = reason.ToString ()
+				};
+			}
+
+			return null;
+		}
+
+		InterestingReason GetInterestingReasonFromAnnotationToInvestigate (MethodDefinition method)
 		{
 			//
 			// TODO: re-investigate these reasons. I've learned more about what makes a method
@@ -293,14 +307,31 @@ namespace Mono.Linker.Analysis
 			return InterestingReason.None;
 		}
 
-		public InterestingReason GetInterestingReasonFromAnnotation (MethodDefinition method)
+		// a few of the "reasons" are given special semantics wrt LinkerUnanalyzed:
+		// most attributes take precedence over LinkerUnanalyzed.
+		// these "big hammers" are lower precedence than LinkerUnanalyzed - so if an API
+		// marked with a "big hammer" is also LinkerUnanalyzed, it will show up as
+		// LinkerUnanalyzed in the output.
+		bool IsBigHammer (InterestingReason reason)
 		{
-			var reason = GetInterestingReasonFromAnnotationToInvestigate (method);
-			if (reason != InterestingReason.None) {
-				return reason;
+			return (reason == InterestingReason.EventSourceBigHammer ||
+					reason == InterestingReason.SerializationBigHammer ||
+					reason == InterestingReason.KnownReflection ||
+					reason == InterestingReason.ToInvestigate);
+		}
+
+		bool IsLinkerUnanalyzedReflectionMethod (MethodDefinition method)
+		{
+			if (unanalyzedMethods == null) {
+				return false;
 			}
 
-			reason = annotations.GetReasonForAnnotation (method);
+			return unanalyzedMethods.ContainsKey (method);
+		}
+
+		InterestingReason GetInterestingReasonFromAnnotation (MethodDefinition method)
+		{
+			var reason = GetInterestingReasonFromAnnotationToInvestigate (method);
 			if (reason != InterestingReason.None) {
 				return reason;
 			}
@@ -1317,7 +1348,7 @@ namespace Mono.Linker.Analysis
 		// an interesting API may still not show up in stacktraces even if called,
 		// if it is dominated by a different interesting API for example.
 
-		public Dictionary<string, string> interestingReasons;
+		Dictionary<string, string> interestingReasons;
 		// records a unique interestingreason for each interesting method.
 		// we use this to check that we don't give multiple reasons for a method.
 
@@ -1330,7 +1361,7 @@ namespace Mono.Linker.Analysis
 			// TODO validate the specified reasons
 		}
 
-		public InterestingReason GetInterestingReason (MethodDefinition method)
+		InterestingReason GetInterestingReason (MethodDefinition method)
 		{
 
 			// there are a few cases:
@@ -1399,14 +1430,14 @@ namespace Mono.Linker.Analysis
 			// has tried to analyze, but wasn't able to understand
 			//
 
-			if (IsLinkerUnanalyzedReflectionMethod (method)) {
-				RecordReason (method, InterestingReason.LinkerUnanalyzed);
-				if (retReason != InterestingReason.None) {
-					// Console.WriteLine("LinkerUnanalyzed method " + method + " was given reason " + retReason);
-				} else {
-					retReason = InterestingReason.LinkerUnanalyzed;
-				}
-			}
+			//if (IsLinkerUnanalyzedReflectionMethod (method)) {
+			//	RecordReason (method, InterestingReason.LinkerUnanalyzed);
+			//	if (retReason != InterestingReason.None) {
+			//		// Console.WriteLine("LinkerUnanalyzed method " + method + " was given reason " + retReason);
+			//	} else {
+			//		retReason = InterestingReason.LinkerUnanalyzed;
+			//	}
+			//}
 
 			//
 			// 3. some attribute markings are lower priority than LinkerUnanalyzed.
@@ -1436,15 +1467,6 @@ namespace Mono.Linker.Analysis
 			}
 
 			return retReason;
-		}
-
-		public bool IsInterestingMethod (MethodDefinition method)
-		{
-			var reason = GetInterestingReason (method);
-			if (reason == InterestingReason.None) {
-				return false;
-			}
-			return true;
 		}
 	}
 }

@@ -27,9 +27,16 @@ namespace Mono.Linker.Steps
 		protected override void Process ()
 		{
 			var annotations = new ApiAnnotations ();
+
+			foreach (var analysisConfigFile in Directory.EnumerateFiles (
+				Path.GetDirectoryName (typeof(AnalysisStep).Assembly.Location),
+				"*.analysisconfig.jsonc")) {
+				annotations.LoadConfiguration (analysisConfigFile);
+			}
+
 			foreach (var analysisConfigFile in Directory.EnumerateFiles (
 				Path.GetDirectoryName (entryPointsStep.EntryPoints.First ().Module.FileName),
-				"*.linkeranalysis.jsonc")) {
+				"*.analysisconfig.jsonc")) {
 				annotations.LoadConfiguration (analysisConfigFile);
 			}
 

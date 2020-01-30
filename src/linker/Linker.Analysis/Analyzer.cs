@@ -13,7 +13,7 @@ namespace Mono.Linker.Analysis
 	{
 		public Dictionary<string, HashSet<TypeDefinition>> hitTypesPerNS;
 		public List<AnalyzedStacktrace> analyzedStacktraces;
-		public Dictionary<InterestingReason, HashSet<AnalyzedStacktrace>> stacktracesPerReason;
+		public Dictionary<string, HashSet<AnalyzedStacktrace>> stacktracesPerCategory;
 		public Dictionary<MethodDefinition, HashSet<AnalyzedStacktrace>> stacktracesPerGroup;
 		public List<AnalyzedStacktrace> allStacktraces;
 
@@ -27,23 +27,23 @@ namespace Mono.Linker.Analysis
 
 		private bool [] isVirtualMethod;
 		private bool [] isAnnotatedSafeMethod;
-		private InterestingReason [] interestingReasons;
+		private ApiAnnotation [] interestingReasons;
 		private int numInterestingMethods;
 		private int numEntryMethods;
 
 
 		// track methods for each interesting reason
-		public Dictionary<InterestingReason, HashSet<MethodDefinition>> methodsPerReason;
+		public Dictionary<string, HashSet<MethodDefinition>> methodsPerCategory;
 
-		void TrackInterestingReason (InterestingReason reason, MethodDefinition method)
+		void TrackCategory (ApiAnnotation annotation, MethodDefinition method)
 		{
-			if (methodsPerReason == null) {
-				methodsPerReason = new Dictionary<InterestingReason, HashSet<MethodDefinition>> ();
+			if (methodsPerCategory == null) {
+				methodsPerCategory = new Dictionary<string, HashSet<MethodDefinition>> ();
 			}
 
-			if (!methodsPerReason.TryGetValue (reason, out HashSet<MethodDefinition> methods)) {
+			if (!methodsPerCategory.TryGetValue (annotation.Category, out HashSet<MethodDefinition> methods)) {
 				methods = new HashSet<MethodDefinition> ();
-				methodsPerReason [reason] = methods;
+				methodsPerCategory [annotation.Category] = methods;
 			}
 			methods.Add (method);
 		}
@@ -67,10 +67,10 @@ namespace Mono.Linker.Analysis
 
 		void ReportMethodReasons ()
 		{
-			if (methodsPerReason is null)
+			if (methodsPerCategory is null)
 				return;
 
-			var sortedReasons = methodsPerReason.OrderByDescending (e => e.Value.Count);
+			var sortedReasons = methodsPerCategory.OrderByDescending (e => e.Value.Count);
 			Console.WriteLine ("summary: found " + numInterestingMethods + " interesting methods");
 			foreach (var e in sortedReasons) {
 				var reason = e.Key;
@@ -82,8 +82,8 @@ namespace Mono.Linker.Analysis
 				if (reason == InterestingReason.None) {
 					continue;
 				}
-				if (methodsPerReason.ContainsKey (reason)) {
-					var methods = methodsPerReason [reason];
+				if (methodsPerCategory.ContainsKey (reason.ToString())) {
+					var methods = methodsPerCategory [reason.ToString()];
 					Debug.Assert (methods != null && methods.Count > 0);
 				} else {
 					Console.WriteLine ("0 methods are " + reason);
@@ -94,11 +94,11 @@ namespace Mono.Linker.Analysis
 		// for each interesting reason, give a count, and a few samples.
 		void ReportBuckets ()
 		{
-			if (stacktracesPerReason == null) {
+			if (stacktracesPerCategory == null) {
 				return;
 			}
 
-			var sortedReasons = stacktracesPerReason.OrderByDescending (e => e.Value.Count);
+			var sortedReasons = stacktracesPerCategory.OrderByDescending (e => e.Value.Count);
 
 			// give a sample of some stacktraces for each category. disabled.
 			// int count = 10;
@@ -126,8 +126,8 @@ namespace Mono.Linker.Analysis
 				if (reason == InterestingReason.None) {
 					continue;
 				}
-				if (stacktracesPerReason.ContainsKey (reason)) {
-					var sts = stacktracesPerReason [reason];
+				if (stacktracesPerCategory.ContainsKey (reason.ToString ())) {
+					var sts = stacktracesPerCategory [reason.ToString ()];
 					Debug.Assert (sts != null && sts.Count > 0);
 				} else {
 					Console.WriteLine ("0 stacktraces are " + reason);
@@ -171,7 +171,7 @@ namespace Mono.Linker.Analysis
 		{
 			numInterestingMethods = 0;
 
-			interestingReasons = new InterestingReason [intCallGraph.numMethods];
+			interestingReasons = new ApiAnnotation [intCallGraph.numMethods];
 			isVirtualMethod = new bool [callGraph.Methods.Count];
 			isAnnotatedSafeMethod = new bool [callGraph.Methods.Count];
 			bool[] isPublicOrVirtual = new bool [callGraph.Methods.Count];
@@ -183,9 +183,9 @@ namespace Mono.Linker.Analysis
 				}
 				if (intCallGraph.isInteresting [i]) {
 					numInterestingMethods++;
-					var reason = apiFilter.GetInterestingReason (cecilMethod);
-					interestingReasons [i] = reason;
-					TrackInterestingReason (reason, cecilMethod);
+					var annotation = apiFilter.GetApiAnnotation (cecilMethod);
+					interestingReasons [i] = annotation;
+					TrackCategory (annotation, cecilMethod);
 				}
 				if (intCallGraph.isEntry [i]) {
 					numEntryMethods++;
@@ -294,7 +294,7 @@ namespace Mono.Linker.Analysis
 								source = sourceInterestingMethod,
 								stacktrace = f,
 								category = CategorizeStacktraceWithCecil (f.asMethods),
-								reason = interestingReasons [sourceInterestingMethod]
+								annotation = interestingReasons [sourceInterestingMethod]
 							};
 							cq.Enqueue (res);
 							Interlocked.Add (ref num_stacktraces, 1);
@@ -420,12 +420,12 @@ namespace Mono.Linker.Analysis
 
 			// bucketize based on interesting reason
 			{
-				if (stacktracesPerReason == null) {
-					stacktracesPerReason = new Dictionary<InterestingReason, HashSet<AnalyzedStacktrace>> ();
+				if (stacktracesPerCategory == null) {
+					stacktracesPerCategory = new Dictionary<string, HashSet<AnalyzedStacktrace>> ();
 				}
-				if (!stacktracesPerReason.TryGetValue (st.reason, out HashSet<AnalyzedStacktrace> sts)) {
+				if (!stacktracesPerCategory.TryGetValue (st.annotation.Category, out HashSet<AnalyzedStacktrace> sts)) {
 					sts = new HashSet<AnalyzedStacktrace> ();
-					stacktracesPerReason [st.reason] = sts;
+					stacktracesPerCategory [st.annotation.Category] = sts;
 				}
 				sts.Add (st);
 			}
@@ -663,7 +663,7 @@ namespace Mono.Linker.Analysis
 	{
 		public int source;
 		public FormattedStacktrace stacktrace;
-		public InterestingReason reason;
+		public ApiAnnotation annotation;
 		public string category;
 	}
 }

@@ -165,7 +165,7 @@ namespace Mono.Linker.Analysis
 					if (methodDef == null) {
 						output.Add (prefix + "---------- (???)");
 					} else {
-						output.Add (prefix + "---------- (" + apiFilter.GetInterestingReason (methodDef).ToString () + ")");
+						output.Add (prefix + "---------- (" + apiFilter.GetApiAnnotation (methodDef).ToString () + ")");
 					}
 				}
 
@@ -209,7 +209,7 @@ namespace Mono.Linker.Analysis
 					if (methodDef == null) {
 						output.Add (prefix + "---------- (???)");
 					} else {
-						output.Add (prefix + "---------- (" + apiFilter.GetInterestingReason (methodDef).ToString () + ")");
+						output.Add (prefix + "---------- (" + apiFilter.GetApiAnnotation (methodDef).ToString () + ")");
 					}
 				} else {
 					// methodDef = intToMethodDef[i];

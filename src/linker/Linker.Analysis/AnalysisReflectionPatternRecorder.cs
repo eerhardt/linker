@@ -5,7 +5,7 @@ namespace Mono.Linker.Analysis
 {
 	class AnalysisReflectionPatternRecorder : IReflectionPatternRecorder
 	{
-		public List<MethodDefinition> UnanalyzedMethods { get; private set; } = new List<MethodDefinition> ();
+		public Dictionary<MethodDefinition, string> UnanalyzedMethods { get; private set; } = new Dictionary<MethodDefinition, string> ();
 		public Dictionary<MethodDefinition, HashSet<MethodDefinition>> ResolvedReflectionCalls { get; private set; } =
 			new Dictionary<MethodDefinition, HashSet<MethodDefinition>> ();
 
@@ -20,7 +20,10 @@ namespace Mono.Linker.Analysis
 
 		public void UnrecognizedReflectionAccessPattern (MethodDefinition sourceMethod, MethodDefinition refletionMethod, string message)
 		{
-			UnanalyzedMethods.Add (sourceMethod);
+			if (UnanalyzedMethods.TryGetValue (sourceMethod, out var existingMessage))
+				message = existingMessage + " | " + message;
+
+			UnanalyzedMethods[sourceMethod] = message;
 		}
 
 		private void AddResolvedReflectionCall(MethodDefinition caller, MethodDefinition callee)

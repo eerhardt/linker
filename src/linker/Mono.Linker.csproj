@@ -41,6 +41,13 @@
     <ProjectReference Include="..\..\external\cecil\symbols\pdb\Mono.Cecil.Pdb.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Linker.Analysis\ReflectionApis.analysisconfig.jsonc">
+      <Link>ReflectionApis.analysisconfig.jsonc</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
   <!-- When publishing illink as a dependency of ILLink.Tasks, we want
        to include files needed to run it as an application in the
        publish output. See https://github.com/dotnet/sdk/issues/1675. -->

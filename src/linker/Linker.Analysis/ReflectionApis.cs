@@ -10,44 +10,44 @@ namespace Mono.Linker.Analysis
 			switch (method.DeclaringType.FullName) {
 				case "System.Activator":
 					switch (method.Name) {
-						case "CreateInstance":
-							// CreateInstance(Type, ...) is dangerous because it requires existance of the specified Type and it having a .ctor.
-							// But linker can't figure out which types to keep as those are determined at runtime dynamically.
+						//case "CreateInstance":
+						//	// CreateInstance(Type, ...) is dangerous because it requires existance of the specified Type and it having a .ctor.
+						//	// But linker can't figure out which types to keep as those are determined at runtime dynamically.
 
-							// CreateInstance<T>() is currently dangerous because linker can't figure out all instantiations. In the future
-							// it should be possible for the linker to determine all of the generic instantiations of this method
-							// and thus correctly analyze it.
+						//	// CreateInstance<T>() is currently dangerous because linker can't figure out all instantiations. In the future
+						//	// it should be possible for the linker to determine all of the generic instantiations of this method
+						//	// and thus correctly analyze it.
 
-							// CreateInstanceFrom - all cases load new files (new code) - see Assembly.LoadFrom for details.
+						//	// CreateInstanceFrom - all cases load new files (new code) - see Assembly.LoadFrom for details.
 
-							// NullableTypeInfo::WriteData does Activator.CreateInstance. which the linker doesn't peer into or warn about...
-							// it doesn't output warnings for Activator.CreateInstance, or try to detect them at all from what I can tell.
-							// return InterestingReason.CreateInstance;
-							// this results in finding 89 stacktraces - one more found than just with LinkerUnanalyzed,
-							// and 30 of them are CreateInstance (though 29 of them would have shown up as LinkerUnanalyzed) (only 57 are left as LinkerUnanalyzed)
+						//	// NullableTypeInfo::WriteData does Activator.CreateInstance. which the linker doesn't peer into or warn about...
+						//	// it doesn't output warnings for Activator.CreateInstance, or try to detect them at all from what I can tell.
+						//	// return InterestingReason.CreateInstance;
+						//	// this results in finding 89 stacktraces - one more found than just with LinkerUnanalyzed,
+						//	// and 30 of them are CreateInstance (though 29 of them would have shown up as LinkerUnanalyzed) (only 57 are left as LinkerUnanalyzed)
 
-							// the thing it does CreateInstance on is a member valueInfo.DataType.
-							// valueInfo is set in the NullableTypeInfo ctor: valueInfo = TraceLoggingTypeInfo.GetInstance(typeArgs[0], recursionCheck)
-							// where typeargs[] = type.GenericTypeArguments for a Type passed in to the ctor.
-							// NullableTypeInfo ctor is only called from TraceLoggingTypeInfo::CreateDefaultTypeInfo - which gets a Type.
-							// in one case, if IsGenericMatch(dataType, typeof(Nullable<>)), it constructs the NullableTypeInfo.
-							// so, this is an implementation detail of TraceLoggingTypeInfo CreateDefaultTypeInfo
-							// which ITSELF is only called from TraceLoggingTypeInfo.GetInstance(Type type)
-							// ... which is called from more places. let's temporarily mark GetInstance as unsafe, then the ctor will not be reached.
-							// then we can mark WriteData as safe because it can never be called (if the ctor is never called!)
-							// we can mark the things it calls as safu - such as NullableTypeInfo
-							// which virtual method causes WriteData to be kept?
-							// it's for EventSource... let's look at it again later.
-							// I thought maybe that this case with Write<Nullable<Foo>> is ok.
-							// I just want to see what else calls Write like this.
-							// however when I run console now, I get no output, because I've told it to only stop at public, while still ignoring virtuals.
-							// which pretty much is like pretending everything is OK. need to continue along this path!
+						//	// the thing it does CreateInstance on is a member valueInfo.DataType.
+						//	// valueInfo is set in the NullableTypeInfo ctor: valueInfo = TraceLoggingTypeInfo.GetInstance(typeArgs[0], recursionCheck)
+						//	// where typeargs[] = type.GenericTypeArguments for a Type passed in to the ctor.
+						//	// NullableTypeInfo ctor is only called from TraceLoggingTypeInfo::CreateDefaultTypeInfo - which gets a Type.
+						//	// in one case, if IsGenericMatch(dataType, typeof(Nullable<>)), it constructs the NullableTypeInfo.
+						//	// so, this is an implementation detail of TraceLoggingTypeInfo CreateDefaultTypeInfo
+						//	// which ITSELF is only called from TraceLoggingTypeInfo.GetInstance(Type type)
+						//	// ... which is called from more places. let's temporarily mark GetInstance as unsafe, then the ctor will not be reached.
+						//	// then we can mark WriteData as safe because it can never be called (if the ctor is never called!)
+						//	// we can mark the things it calls as safu - such as NullableTypeInfo
+						//	// which virtual method causes WriteData to be kept?
+						//	// it's for EventSource... let's look at it again later.
+						//	// I thought maybe that this case with Write<Nullable<Foo>> is ok.
+						//	// I just want to see what else calls Write like this.
+						//	// however when I run console now, I get no output, because I've told it to only stop at public, while still ignoring virtuals.
+						//	// which pretty much is like pretending everything is OK. need to continue along this path!
 
-							// next step: try running this with an eventsource app.
-							if (method.Parameters.Count == 1 && method.Parameters [0].ParameterType.FullName == "System.Type") {
-								return InterestingReason.CreateInstance;
-							}
-							return InterestingReason.KnownReflection;
+						//	// next step: try running this with an eventsource app.
+						//	if (method.Parameters.Count == 1 && method.Parameters [0].ParameterType.FullName == "System.Type") {
+						//		return InterestingReason.CreateInstance;
+						//	}
+						//	return InterestingReason.KnownReflection;
 						case "CreateInstanceFrom":
 							return InterestingReason.KnownReflection;
 					}

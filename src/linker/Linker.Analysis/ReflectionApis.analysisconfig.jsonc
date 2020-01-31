@@ -1,4 +1,6 @@
 [
+
+  // System.Activator
   {
     // Activator.CreateInstance over Type
     // Type type must exist (otherwise we wouldn't get to the call), so the only remaining problem is that
@@ -32,7 +34,6 @@
     "Warn": "CreateInstance over assembly and type name, if the assembly name is specified make sure the assembly is referenced, otherwise make sure the type is referenced and its .ctor is referenced",
     "Category": "CreateInstance"
   },
-
   {
     // Assembly.GetType
     // Adds a type to closure on existing assembly, so type trimming will not work correctly.
@@ -47,5 +48,229 @@
     "Aspect": "TypeTrim",
     "Warn": "GetType on a string, make sure that the type is referenced",
     "Category": "KnownReflection"
+  },
+  {
+    // Activator.CreateInstanceFrom loads an assembly from the specified file path (first argument)
+    // This creates potential issues even for assembly trimming scenarios as the loaded assembly may have dependency
+    // on the trimmed assemblies.
+    // TODO: This is also potentially dangerous for Single-File as we're loading assembly from a file path (Which may not exist in single-file)
+    "Type": "System.Activator",
+    "Methods": [
+      "CreateInstanceFrom(System.String,System.String,System.Boolean,System.ReflectionBindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[])",
+      "CreateInstanceFrom(System.String,System.String,System.Object[])",
+      "CreateInstanceFrom(System.String,System.String)"
+    ],
+    "Aspect": "AssemblyTrim",
+    "Warn": "CreateInstance over assembly and type name, if the assembly name is specified make sure the assembly is referenced, otherwise make sure the type is referenced and its .ctor is referenced",
+    "Category": "CreateInstance"
+  },
+
+  // System.AppDomain
+  {
+    "Type": "System.AppDomain",
+    "Methods": [ "get_BaseDirectory" ],
+    "Aspect": "SingleFile",
+    "Warn": "The base directory may not contain the same set of files when running the app from a single-file bundle. For example most assemblies will not be on disk.",
+    "Category": "SingleFileUnfriendly"
+  },
+  {
+    // AppDomain.CreateInstance over string assembly, string type
+    // This is effectively load assembly, find type and create instance in a row.
+    // So even assembly trimming might have issues.
+    "Type": "System.AppDomain",
+    "Methods": [
+      "CreateInstance(System.String,System.String,System.Boolean,System.ReflectionBindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[])",
+      "CreateInstance(System.String,System.String,System.Object[])",
+      "CreateInstance(System.String,System.String)",
+      "CreateInstanceAndUnwrap(System.String,System.String,System.Boolean,System.ReflectionBindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[])",
+      "CreateInstanceAndUnwrap(System.String,System.String,System.Object[])",
+      "CreateInstanceAndUnwrap(System.String,System.String)"
+    ],
+    "Aspect": "AssemblyTrim",
+    "Warn": "CreateInstance over assembly and type name, if the assembly name is specified make sure the assembly is referenced, otherwise make sure the type is referenced and its .ctor is referenced",
+    "Category": "CreateInstance"
+  },
+  {
+    // AppDomain.CreateInstanceFrom loads an assembly from the specified file path (first argument)
+    // This creates potential issues even for assembly trimming scenarios as the loaded assembly may have dependency
+    // on the trimmed assemblies.
+    // TODO: This is also potentially dangerous for Single-File as we're loading assembly from a file path (Which may not exist in single-file)
+    "Type": "System.Activator",
+    "Methods": [
+      "CreateInstanceFrom(System.String,System.String,System.Boolean,System.ReflectionBindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[])",
+      "CreateInstanceFrom(System.String,System.String,System.Object[])",
+      "CreateInstanceFrom(System.String,System.String)",
+      "CreateInstanceFromAndUnwrap(System.String,System.String,System.Boolean,System.ReflectionBindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[])",
+      "CreateInstanceFromAndUnwrap(System.String,System.String,System.Object[])",
+      "CreateInstanceFromAndUnwrap(System.String,System.String)"
+    ],
+    "Aspect": "AssemblyTrim",
+    "Warn": "CreateInstance over assembly and type name, if the assembly name is specified make sure the assembly is referenced, otherwise make sure the type is referenced and its .ctor is referenced",
+    "Category": "CreateInstance"
+  },
+  {
+    // AppDomain.ExecuteAssembly loads an assembly and then executes the Main in it. So it has requirements to even assembly trimming.
+    // TODO: This is also potentially dangerous for Single-File as we're loading assembly from a file path (Which may not exist in single-file)
+    "Type": "System.AppDomain",
+    "Methods": [
+      "ExecuteAssembly(System.String)",
+      "ExecuteAssembly(System.String,System.String[])",
+      "ExecuteAssembly(System.String,System.String[],System.Byte[],System.Configuration.Assemblies.AssemblyHashAlgorithm)",
+      "ExecuteAssemblyByName(System.String)",
+      "ExecuteAssemblyByName(System.String,System.String[])",
+      "ExecuteAssemblyByName(System.String,System.String[],System.Byte[],System.Configuration.Assemblies.AssemblyHashAlgorithm)"
+    ],
+    "Aspect": "AssemblyTrim",
+    "Warn": "ExecuteAssembly: make sure the assembly to be executed is referenced and visible to the linker and that the type and method of the entry point is referenced as well.",
+    "Category": "KnownReflection"
+  },
+  {
+    // Enumerates all assemblies in the AppDomain - when trimming, some may not be there
+    "Type": "System.AppDomain",
+    "Methods": [
+      "GetAssemblies",
+      "ReflectionOnlyGetAssemblies"
+    ],
+    "Aspect": "AssemblyTrim",
+    "Warn": "The enumeration may return a smaller set of assemblies as some may be trimmed.",
+    "Category": "ToInvestigate_EnumMetadata"
+  },
+
+  {
+    // Basically the same as Assembly.Load - assembly loading
+    "Type": "System.AppDomain",
+    "Methods": [
+      "Load(System.Byte[])",
+      "Load(System.Byte[],System.Byte[])",
+      "Load(System.Reflection.AssemblyName)",
+      "Load(System.String)"
+    ],
+    "Aspect": "AssemblyTrim",
+    "Warn": "Loading assembly from in-memory byte array or from a file. The new assembly may have references to assemblies/types/methods which were trimmed.",
+    "Category": "KnownReflection"
+  },
+
+
+  // System.Delegate
+  {
+    // Create a delegate over a method specified by its name on a type. This is basically equivalent to Type.GetMethod.
+    // There are other overloads which take MethodInfo instead of method name. Those should be safe as the type and the method
+    // must be available to get both the Type and MethodInfo instances. Also at that point the method should be safe to actually invoke:
+    // CreateDelegate(System.Type,System.Object,System.Reflection.MethodInfo,System.Boolean)
+    // CreateDelegate(System.Type,System.Reflection.MethodInfo,System.Boolean)
+    // CreateDelegate(System.Type,System.Object,System.Reflection.MethodInfo)
+    // CreateDelegate(System.Type,System.Reflection.MethodInfo)
+    "Type": "System.Delegate",
+    "Methods": [
+      ".ctor(System.Object,System.String)",
+      ".ctor(System.Type,System.String)",
+      "CreateDelegate(System.Type,System.Type,System.String,System.Boolean,System.Boolean)",
+      "CreateDelegate(System.Type,System.Type,System.String,System.Boolean)",
+      "CreateDelegate(System.Type,System.Type,System.String)",
+      "CreateDelegate(System.Type,System.Object,System.String,System.Boolean)",
+      "CreateDelegate(System.Type,System.Object,System.String,System.Boolean,System.Boolean)",
+      "CreateDelegate(System.Type,System.Object,System.String)"
+    ],
+    "Aspect": "MemberTrim",
+    "Warn": "",
+    "Category": ""
+  },
+
+
+  // System.Type
+  {
+    // All these methods enumerate types, when type trimming some may not be present.
+    "Type": "System.Type",
+    "Methods": [
+      "FindInterfaces"
+    ],
+    "Aspect": "TypeTrim",
+    "Warn": "Some interfaces may be trimmed if they're not used by the app, so the search may not include all possible candidate",
+    "Category": "KnownReflection_EnumMetadata"
+  },
+  {
+    // All these methods enumerate members on a type, when member trimming some may not be present.
+    "Type": "System.Type",
+    "Methods": [
+      "FindMembers",
+      "GetConstructors",
+      "GetEvents",
+      "GetFields",
+      "GetInterfaces",
+      "GetMembers",
+      "GetProperties",
+      "GetInterfaceMap" // ??? This is questionable - does linker actually trim members of interfaces?
+    ],
+    "Aspect": "MemberTrim",
+    "Warn": "Some members may have been trimmed, this method may no return the full list anymore",
+    "Category": "KnownReflection_EnumMetadata"
+  },
+
+  {
+    "Type": "System.Type",
+    "Methods": [
+      "GetConstructor",
+      "GetEvent",
+      "GetField",
+      "GetMember",
+      "GetMethod",
+      "GetMethodImpl",
+      "GetProperty",
+      "GetPropertyImpl",
+      "InvokeMember"
+    ],
+    "Aspect": "MemberTrim",
+    "Warn": "The requested member may have been trimmed, please make sure that there's a reference to it",
+    "Category": "KnownReflection"
+  },
+
+  {
+    "Type": "System.Type",
+    "Methods": [
+      // GetType() is excluded as that is different, it returns the type of the current instance (it's basically object.GetType) and thus perfectly safe
+      "GetType(System.String)",
+      "GetType(System.String,System.Boolean)",
+      "GetType(System.String,System.Boolean,System.Boolean)",
+      "GetType(System.String,System.Func<System.Reflection.AssemblyName,System.Reflection.Assembly>,System.Func<System.Reflection.Assembly,System.String,System.Boolean,System.Type>)",
+      "GetType(System.String,System.Func<System.Reflection.AssemblyName,System.Reflection.Assembly>,System.Func<System.Reflection.Assembly,System.String,System.Boolean,System.Type>,System.Boolean)",
+      "GetType(System.String,System.Func<System.Reflection.AssemblyName,System.Reflection.Assembly>,System.Func<System.Reflection.Assembly,System.String,System.Boolean,System.Type>,System.Boolean,System.Boolean)",
+      "ReflectionOnlyGetType",
+      "GetInterface",
+      "GetNestedType",
+      "GetTypeFromCLSID", // TODO - validate this, but it's likely basically equivalent to ask for type by name
+      "GetTypeFromProgID" // TODO - validate this, but it's likely basically equivalent to ask for type by name
+    ],
+    "Aspect": "TypeTrim",
+    "Warn": "The requested type may have been trimmed, please make sure that there's a reference to it",
+    "Category": "KnownReflection"
+  },
+
+  // GetTypeArray - safe since it is basically equivalent to object.GetType
+  // GetTypeCode and GetTypeCodeImpl - safe as it doesn't introduce new dependency on anything
+
+  // GetTypeFromHandle - safe. This is the call used when typeof(type) is used, and in this case the type is determined
+  // by an ldtoken instruction. For that to exist the type must have a token and thus it must exist in the assembly.
+  // Note that this does not put an additional requirements on the type (like ctors, methods and so on).
+
+  {
+    // TODOs - needs more investigation
+    "Type": "System.Type",
+    "Methods": [
+      "MakeArrayType", // This one is probably safe, but need to double check
+      "MakeGenericMethodParameter", // No idea what this does
+      "MakeGenericSignatureType", // No idea what this does
+      "MakeGenericType" // Probably safe on its own, but it can cause problems for the linker to determine generic instantiations if we decide to implement that
+    ],
+    "Aspect": "MemberTrim",
+    "Warn": "TODO",
+    "Category": "ToInvestigate"
+  },
+
+  {
+    "Type": "-",
+    "Methods": [],
+    "Aspect": "MemberTrim",
+    "Warn": "",
+    "Category": ""
   }
 ]

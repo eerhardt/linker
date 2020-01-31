@@ -8,8 +8,8 @@ namespace Mono.Linker.Analysis
 		public static InterestingReason GetInterestingReasonForReflectionApi (MethodDefinition method)
 		{
 			switch (method.DeclaringType.FullName) {
-				case "System.Activator":
-					switch (method.Name) {
+				//case "System.Activator":
+				//	switch (method.Name) {
 						//case "CreateInstance":
 						//	// CreateInstance(Type, ...) is dangerous because it requires existance of the specified Type and it having a .ctor.
 						//	// But linker can't figure out which types to keep as those are determined at runtime dynamically.
@@ -48,76 +48,76 @@ namespace Mono.Linker.Analysis
 						//		return InterestingReason.CreateInstance;
 						//	}
 						//	return InterestingReason.KnownReflection;
-						case "CreateInstanceFrom":
-							return InterestingReason.KnownReflection;
-					}
-					break;
-				case "System.AppDomain":
-					switch (method.Name) {
-						case "get_BaseDirectory":
-							// Some apps may have assumptions about where BaseDirectory points to
-							// in single-file deployments it might not match the expectations.
-							return InterestingReason.SingleFileUnfriendly;
+						//case "CreateInstanceFrom":
+						//	return InterestingReason.KnownReflection;
+					//}
+					//break;
+				//case "System.AppDomain":
+				//	switch (method.Name) {
+				//		case "get_BaseDirectory":
+				//			// Some apps may have assumptions about where BaseDirectory points to
+				//			// in single-file deployments it might not match the expectations.
+				//			return InterestingReason.SingleFileUnfriendly;
 
-						case "CreateInstance":
-						case "CreateInstanceAndUnwrap":
-							// CreateInstance(string assembly, string type)
-							// we mark this as unsafe rather than the internal createinstance, because there might be some public
-							// entry points that are actually safe - and then we would want to mark the internal one as safe.
-							if ((method.Parameters.Count == 2 || method.Parameters.Count == 8 || method.Parameters.Count == 3) &&
-								method.Parameters [0].ParameterType.FullName == "System.String" &&
-								method.Parameters [1].ParameterType.FullName == "System.String") {
-								return InterestingReason.CreateInstance;
-							}
-							return InterestingReason.KnownReflection;
-						// TODO: apply also to CreateInstanceFrom.
-						case "CreateInstanceFrom":
-						case "CreateInstanceFromAndUnwrap":
-						case "ExecuteAssembly":
-						case "ExecuteAssemblyByName":
-							// Some of these always throw on .NET Core and some call into Activator.CreateInstance/Activator.CreateInstanceFrom
-							// but it's simpler/easier to understand to mark them explicitly anyway.
-							// See the comments in Activator for more details.
-							return InterestingReason.KnownReflection;
+				//		case "CreateInstance":
+				//		case "CreateInstanceAndUnwrap":
+				//			// CreateInstance(string assembly, string type)
+				//			// we mark this as unsafe rather than the internal createinstance, because there might be some public
+				//			// entry points that are actually safe - and then we would want to mark the internal one as safe.
+				//			if ((method.Parameters.Count == 2 || method.Parameters.Count == 8 || method.Parameters.Count == 3) &&
+				//				method.Parameters [0].ParameterType.FullName == "System.String" &&
+				//				method.Parameters [1].ParameterType.FullName == "System.String") {
+				//				return InterestingReason.CreateInstance;
+				//			}
+				//			return InterestingReason.KnownReflection;
+				//		// TODO: apply also to CreateInstanceFrom.
+				//		case "CreateInstanceFrom":
+				//		case "CreateInstanceFromAndUnwrap":
+				//		case "ExecuteAssembly":
+				//		case "ExecuteAssemblyByName":
+				//			// Some of these always throw on .NET Core and some call into Activator.CreateInstance/Activator.CreateInstanceFrom
+				//			// but it's simpler/easier to understand to mark them explicitly anyway.
+				//			// See the comments in Activator for more details.
+				//			return InterestingReason.KnownReflection;
 
-						case "GetAssemblies":
-						case "ReflectionOnlyGetAssemblies":
-							// TODO: These can be dangerous since in trimmed apps they might return smaller set than in untrimmed apps.
-							// It's unclear if we should mark that as dangerous or not.
-							return InterestingReason.ToInvestigate_EnumMetadata;
+				//		case "GetAssemblies":
+				//		case "ReflectionOnlyGetAssemblies":
+				//			// TODO: These can be dangerous since in trimmed apps they might return smaller set than in untrimmed apps.
+				//			// It's unclear if we should mark that as dangerous or not.
+				//			return InterestingReason.ToInvestigate_EnumMetadata;
 
-						case "Load":
-							// Same as Assembly.Load (actually calls into that) - see comments for Assembly.Load for details.
-							return InterestingReason.KnownReflection;
-					}
-					break;
+				//		case "Load":
+				//			// Same as Assembly.Load (actually calls into that) - see comments for Assembly.Load for details.
+				//			return InterestingReason.KnownReflection;
+				//	}
+				//	break;
 				// case "System.RuntimeTypeHandle":
 				// considered safe. typef(Foo) == typeof(T) or typeof(Foo) == o.GetType() used for perf optimizations
 				// but isn't a problem.
 				// case "System.ArgIterator":
 				// should be safe
-				case "System.Delegate":
-					switch (method.Name) {
-						case ".ctor":
-						// This is protected, so it's highly unlikely to be used as it needs subclassing which pretty much nobody does
-						// but still - technically the .ctor is dangerous as it takes the name of the method as a string.
-						case "CreateDelegate":
-							if (method.Parameters.Count >= 3 && method.Parameters [2].ParameterType.FullName == "System.String") {
-								// The overloads which take method name as string are unsafe as they effectively express a dependency
-								// on a method which linker can't analyze.
-								return InterestingReason.KnownReflection;
-							} else if (method.Parameters.Any (p => p.ParameterType.FullName == "System.Reflection.MethodInfo")) {
-								// The overloads which take MethodInfo should be safe since
-								// - The type of the delegate is passed in as Type, but creating an instance of it does not add additional constrains
-								//   on it - I think????
-								// - The method itself is safe since by this time a MethodInfo for it is available.
-								return InterestingReason.ToInvestigate;
-							} else {
-								// Should never get here really, but to be safe mark it as dangerous.
-								return InterestingReason.KnownReflection;
-							}
-					}
-					break;
+				//case "System.Delegate":
+				//	switch (method.Name) {
+				//		case ".ctor":
+				//		// This is protected, so it's highly unlikely to be used as it needs subclassing which pretty much nobody does
+				//		// but still - technically the .ctor is dangerous as it takes the name of the method as a string.
+				//		case "CreateDelegate":
+				//			if (method.Parameters.Count >= 3 && method.Parameters [2].ParameterType.FullName == "System.String") {
+				//				// The overloads which take method name as string are unsafe as they effectively express a dependency
+				//				// on a method which linker can't analyze.
+				//				return InterestingReason.KnownReflection;
+				//			} else if (method.Parameters.Any (p => p.ParameterType.FullName == "System.Reflection.MethodInfo")) {
+				//				// The overloads which take MethodInfo should be safe since
+				//				// - The type of the delegate is passed in as Type, but creating an instance of it does not add additional constrains
+				//				//   on it - I think????
+				//				// - The method itself is safe since by this time a MethodInfo for it is available.
+				//				return InterestingReason.ToInvestigate;
+				//			} else {
+				//				// Should never get here really, but to be safe mark it as dangerous.
+				//				return InterestingReason.KnownReflection;
+				//			}
+				//	}
+				//	break;
 				case "System.Type":
 					switch (method.Name) {
 						case "FindInterfaces":

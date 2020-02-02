@@ -449,9 +449,11 @@ namespace Mono.Linker {
 					p.AddStepBefore (typeof (OutputStep), new ClearInitLocalsStep ());
 
 				if (analyzeForTrim) {
-					AnalysisEntryPointsStep analysisEntryPointsStep = new AnalysisEntryPointsStep ();
+					var analysisEntryPointsStep = new AnalysisEntryPointsStep ();
+					var analysisAnnotationsStep = new AnalysisAnnotationsStep (analysisEntryPointsStep);
 					p.AddStepBefore (typeof (LoadReferencesStep), analysisEntryPointsStep);
-					p.AddStepAfter (typeof (OutputStep), new AnalysisStep (context, analysisEntryPointsStep));
+					p.AddStepBefore (typeof (MarkStep), analysisAnnotationsStep);
+					p.AddStepAfter (typeof (OutputStep), new AnalysisStep (context, analysisEntryPointsStep, analysisAnnotationsStep));
 				}
 
 				PreProcessPipeline (p);

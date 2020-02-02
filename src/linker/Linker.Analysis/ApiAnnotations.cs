@@ -22,7 +22,7 @@ namespace Mono.Linker.Analysis
 			};
 		}
 
-		public void LoadConfiguration (string filePath)
+		public void LoadConfiguration (string filePath, LinkContext linkContext)
 		{
 			using (var fileStream = File.OpenRead (filePath))
 			using (JsonDocument document = JsonDocument.Parse (fileStream, new JsonDocumentOptions () {
@@ -30,6 +30,13 @@ namespace Mono.Linker.Analysis
 			})) {
 				foreach (var annotationElement in document.RootElement.EnumerateArray ()) {
 					string typeName = annotationElement.GetProperty ("Type").GetString ();
+
+					// Try to resolve the type - if it can't be resolved - issues a warning
+					TypeDefinition typeDefinition = linkContext.GetType (typeName);
+					if (typeDefinition == null) {
+						linkContext.LogMessage (MessageImportance.High,	$"Could not resolve type name '{typeName}' specified in link analysis configuration file '{filePath}'. The annotation with this type name will be ignored.");
+						continue;
+					}
 
 					ApiAnnotation annotation = null;
 					if (annotationElement.TryGetProperty("Warn", out var warn)) {
@@ -74,6 +81,13 @@ namespace Mono.Linker.Analysis
 						throw new Exception ($"Failure reading linker analysis configuration '{filePath}'. Annotation for type '{typeName}' doesn't specify 'Aspect' property.");
 					}
 
+					// Try to resolve all methods and warn if it fails
+					foreach (var methodName in annotation.MethodNames) {
+						if (!typeDefinition.Methods.Any (method => MatchesMethodName (methodName, method))) {
+							linkContext.LogMessage (MessageImportance.High, $"Annotation for type '{typeName}' in '{filePath}' contains a method name '{methodName}' which can't be resolved. Make sure the method is correctly specified.");
+						}
+					}
+
 					_annotations [annotation.Aspect].Add (annotation);
 					if (annotation.Aspect == CodeReadinessAspect.AssemblyTrim) {
 						_annotations [CodeReadinessAspect.TypeTrim].Add (annotation);
@@ -90,13 +104,22 @@ namespace Mono.Linker.Analysis
 		{
 			string fullTypeName = method.DeclaringType.FullName;
 			foreach (var annotation in _annotations [aspect].Where (a => a.TypeFullName == fullTypeName)) {
-				string fullMethodName = GetSignature (method);
-				if (annotation.MethodNames.Any (methodName => methodName == fullMethodName)) {
+				if (annotation.MethodNames.Any (methodName => MatchesMethodName (methodName, method))) {
 					return annotation;
 				}
 			}
 
 			return null;
+		}
+
+		static bool MatchesMethodName (string methodName, MethodDefinition method)
+		{
+			if (methodName.IndexOf ('(') == -1) {
+				return methodName == method.Name;
+			}
+			else {
+				return methodName == GetSignature (method);
+			}
 		}
 
 		static string GetSignature (MethodDefinition method)

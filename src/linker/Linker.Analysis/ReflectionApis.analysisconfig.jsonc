@@ -7,8 +7,8 @@
     // we require a presense of the .ctor for CreateInstance to work - and so member trimming will not work correctly.
     "Type": "System.Activator",
     "Methods": [
-      "CreateInstance(System.Type,System.ReflectionBindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[])",
-      "CreateInstance(System.Type,System.ReflectionBindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo)",
+      "CreateInstance(System.Type,System.Reflection.BindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[])",
+      "CreateInstance(System.Type,System.Reflection.BindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo)",
       "CreateInstance(System.Type,System.Object[],System.Object[])",
       "CreateInstance(System.Type,System.Object[])",
       "CreateInstance(System.Type,System.Boolean)",
@@ -25,8 +25,7 @@
     // So even assembly trimming might have issues.
     "Type": "System.Activator",
     "Methods": [
-      "CreateInstance(System.String,System.String,System.Boolean,System.ReflectionBindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[])",
-      "CreateInstance(System.String,System.String,System.Object[],System.Object[])",
+      "CreateInstance(System.String,System.String,System.Boolean,System.Reflection.BindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[])",
       "CreateInstance(System.String,System.String,System.Object[])",
       "CreateInstance(System.String,System.String)"
     ],
@@ -35,28 +34,13 @@
     "Category": "CreateInstance"
   },
   {
-    // Assembly.GetType
-    // Adds a type to closure on existing assembly, so type trimming will not work correctly.
-    // TODO: If the type is forwarded from the assembly in question it will also find it
-    //   This could mean problems even for assembly trimming, if we rely on type tracking to figure out which assemblies to keep.
-    "Type": "System.Reflection.Assembly",
-    "Methods": [
-      "GetType(System.String)",
-      "GetType(System.String,System.Boolean)",
-      "GetType(System.String,System.Boolean,System.Boolean)"
-    ],
-    "Aspect": "TypeTrim",
-    "Warn": "GetType on a string, make sure that the type is referenced",
-    "Category": "KnownReflection"
-  },
-  {
     // Activator.CreateInstanceFrom loads an assembly from the specified file path (first argument)
     // This creates potential issues even for assembly trimming scenarios as the loaded assembly may have dependency
     // on the trimmed assemblies.
     // TODO: This is also potentially dangerous for Single-File as we're loading assembly from a file path (Which may not exist in single-file)
     "Type": "System.Activator",
     "Methods": [
-      "CreateInstanceFrom(System.String,System.String,System.Boolean,System.ReflectionBindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[])",
+      "CreateInstanceFrom(System.String,System.String,System.Boolean,System.Reflection.BindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[])",
       "CreateInstanceFrom(System.String,System.String,System.Object[])",
       "CreateInstanceFrom(System.String,System.String)"
     ],
@@ -79,10 +63,10 @@
     // So even assembly trimming might have issues.
     "Type": "System.AppDomain",
     "Methods": [
-      "CreateInstance(System.String,System.String,System.Boolean,System.ReflectionBindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[])",
+      "CreateInstance(System.String,System.String,System.Boolean,System.Reflection.BindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[])",
       "CreateInstance(System.String,System.String,System.Object[])",
       "CreateInstance(System.String,System.String)",
-      "CreateInstanceAndUnwrap(System.String,System.String,System.Boolean,System.ReflectionBindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[])",
+      "CreateInstanceAndUnwrap(System.String,System.String,System.Boolean,System.Reflection.BindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[])",
       "CreateInstanceAndUnwrap(System.String,System.String,System.Object[])",
       "CreateInstanceAndUnwrap(System.String,System.String)"
     ],
@@ -95,12 +79,12 @@
     // This creates potential issues even for assembly trimming scenarios as the loaded assembly may have dependency
     // on the trimmed assemblies.
     // TODO: This is also potentially dangerous for Single-File as we're loading assembly from a file path (Which may not exist in single-file)
-    "Type": "System.Activator",
+    "Type": "System.AppDomain",
     "Methods": [
-      "CreateInstanceFrom(System.String,System.String,System.Boolean,System.ReflectionBindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[])",
+      "CreateInstanceFrom(System.String,System.String,System.Boolean,System.Reflection.BindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[])",
       "CreateInstanceFrom(System.String,System.String,System.Object[])",
       "CreateInstanceFrom(System.String,System.String)",
-      "CreateInstanceFromAndUnwrap(System.String,System.String,System.Boolean,System.ReflectionBindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[])",
+      "CreateInstanceFromAndUnwrap(System.String,System.String,System.Boolean,System.Reflection.BindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[])",
       "CreateInstanceFromAndUnwrap(System.String,System.String,System.Object[])",
       "CreateInstanceFromAndUnwrap(System.String,System.String)"
     ],
@@ -118,7 +102,7 @@
       "ExecuteAssembly(System.String,System.String[],System.Byte[],System.Configuration.Assemblies.AssemblyHashAlgorithm)",
       "ExecuteAssemblyByName(System.String)",
       "ExecuteAssemblyByName(System.String,System.String[])",
-      "ExecuteAssemblyByName(System.String,System.String[],System.Byte[],System.Configuration.Assemblies.AssemblyHashAlgorithm)"
+      "ExecuteAssemblyByName(System.Reflection.AssemblyName,System.String[])"
     ],
     "Aspect": "AssemblyTrim",
     "Warn": "ExecuteAssembly: make sure the assembly to be executed is referenced and visible to the linker and that the type and method of the entry point is referenced as well.",
@@ -231,9 +215,9 @@
       "GetType(System.String)",
       "GetType(System.String,System.Boolean)",
       "GetType(System.String,System.Boolean,System.Boolean)",
-      "GetType(System.String,System.Func<System.Reflection.AssemblyName,System.Reflection.Assembly>,System.Func<System.Reflection.Assembly,System.String,System.Boolean,System.Type>)",
-      "GetType(System.String,System.Func<System.Reflection.AssemblyName,System.Reflection.Assembly>,System.Func<System.Reflection.Assembly,System.String,System.Boolean,System.Type>,System.Boolean)",
-      "GetType(System.String,System.Func<System.Reflection.AssemblyName,System.Reflection.Assembly>,System.Func<System.Reflection.Assembly,System.String,System.Boolean,System.Type>,System.Boolean,System.Boolean)",
+      "GetType(System.String,System.Func`2<System.Reflection.AssemblyName,System.Reflection.Assembly>,System.Func`4<System.Reflection.Assembly,System.String,System.Boolean,System.Type>)",
+      "GetType(System.String,System.Func`2<System.Reflection.AssemblyName,System.Reflection.Assembly>,System.Func`4<System.Reflection.Assembly,System.String,System.Boolean,System.Type>,System.Boolean)",
+      "GetType(System.String,System.Func`2<System.Reflection.AssemblyName,System.Reflection.Assembly>,System.Func`4<System.Reflection.Assembly,System.String,System.Boolean,System.Type>,System.Boolean,System.Boolean)",
       "ReflectionOnlyGetType",
       "GetInterface",
       "GetNestedType",
@@ -264,6 +248,22 @@
     "Aspect": "MemberTrim",
     "Warn": "TODO",
     "Category": "ToInvestigate"
+  },
+
+  {
+    // Assembly.GetType
+    // Adds a type to closure on existing assembly, so type trimming will not work correctly.
+    // TODO: If the type is forwarded from the assembly in question it will also find it
+    //   This could mean problems even for assembly trimming, if we rely on type tracking to figure out which assemblies to keep.
+    "Type": "System.Reflection.Assembly",
+    "Methods": [
+      "GetType(System.String)",
+      "GetType(System.String,System.Boolean)",
+      "GetType(System.String,System.Boolean,System.Boolean)"
+    ],
+    "Aspect": "TypeTrim",
+    "Warn": "GetType on a string, make sure that the type is referenced",
+    "Category": "KnownReflection"
   },
 
   {

@@ -1,7 +1,6 @@
 ﻿using Mono.Cecil;
 using Mono.Linker.Analysis;
 using System.IO;
-using System.Linq;
 
 namespace Mono.Linker.Steps
 {
@@ -11,11 +10,13 @@ namespace Mono.Linker.Steps
 		readonly CallgraphDependencyRecorder callgraphDependencyRecorder;
 		readonly AnalysisReflectionPatternRecorder reflectionPatternRecorder;
 		readonly AnalysisEntryPointsStep entryPointsStep;
+		readonly AnalysisAnnotationsStep annotationsStep;
 
-		public AnalysisStep(LinkContext context, AnalysisEntryPointsStep entryPointsStep)
+		public AnalysisStep(LinkContext context, AnalysisEntryPointsStep entryPointsStep, AnalysisAnnotationsStep annotationsStep)
 		{
 			this.context = context;
 			this.entryPointsStep = entryPointsStep;
+			this.annotationsStep = annotationsStep;
 			
 			callgraphDependencyRecorder = new CallgraphDependencyRecorder ();
 			context.Tracer.AddRecorder (callgraphDependencyRecorder);
@@ -26,21 +27,7 @@ namespace Mono.Linker.Steps
 
 		protected override void Process ()
 		{
-			var annotations = new ApiAnnotations ();
-
-			foreach (var analysisConfigFile in Directory.EnumerateFiles (
-				Path.GetDirectoryName (typeof(AnalysisStep).Assembly.Location),
-				"*.analysisconfig.jsonc")) {
-				annotations.LoadConfiguration (analysisConfigFile);
-			}
-
-			foreach (var analysisConfigFile in Directory.EnumerateFiles (
-				Path.GetDirectoryName (entryPointsStep.EntryPoints.First ().Module.FileName),
-				"*.analysisconfig.jsonc")) {
-				annotations.LoadConfiguration (analysisConfigFile);
-			}
-
-			var apiFilter = new ApiFilter (reflectionPatternRecorder.UnanalyzedMethods, entryPointsStep.EntryPoints, annotations);
+			var apiFilter = new ApiFilter (reflectionPatternRecorder.UnanalyzedMethods, entryPointsStep.EntryPoints, annotationsStep.ApiAnnotations);
 			var cg = new CallGraph (callgraphDependencyRecorder.Dependencies, apiFilter);
 
 			string jsonFile = Path.Combine (context.OutputDirectory, "trimanalysis.json");

@@ -22,30 +22,18 @@
   {
     // Activator.CreateInstance over string assembly, string type
     // This is effectively load assembly, find type and create instance in a row.
+    // Activator.CreateInstanceFrom loads assembly from a file.
     // So even assembly trimming might have issues.
+    // TODO: CreateInstanceFrom is potentially dangerous for single-file as it loads from a file path
     "Type": "System.Activator",
     "Methods": [
       "CreateInstance(System.String,System.String,System.Boolean,System.Reflection.BindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[])",
       "CreateInstance(System.String,System.String,System.Object[])",
-      "CreateInstance(System.String,System.String)"
+      "CreateInstance(System.String,System.String)",
+      "CreateInstanceFrom"
     ],
     "Aspect": "AssemblyTrim",
-    "Warn": "CreateInstance over assembly and type name, if the assembly name is specified make sure the assembly is referenced, otherwise make sure the type is referenced and its .ctor is referenced",
-    "Category": "CreateInstance"
-  },
-  {
-    // Activator.CreateInstanceFrom loads an assembly from the specified file path (first argument)
-    // This creates potential issues even for assembly trimming scenarios as the loaded assembly may have dependency
-    // on the trimmed assemblies.
-    // TODO: This is also potentially dangerous for Single-File as we're loading assembly from a file path (Which may not exist in single-file)
-    "Type": "System.Activator",
-    "Methods": [
-      "CreateInstanceFrom(System.String,System.String,System.Boolean,System.Reflection.BindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[])",
-      "CreateInstanceFrom(System.String,System.String,System.Object[])",
-      "CreateInstanceFrom(System.String,System.String)"
-    ],
-    "Aspect": "AssemblyTrim",
-    "Warn": "CreateInstance over assembly and type name, if the assembly name is specified make sure the assembly is referenced, otherwise make sure the type is referenced and its .ctor is referenced",
+    "Warn": "CreateInstance over assembly and type name or CreateInstanceFrom, if the assembly name is specified make sure the assembly is referenced, otherwise make sure the type is referenced and its .ctor is referenced",
     "Category": "CreateInstance"
   },
 
@@ -63,12 +51,8 @@
     // So even assembly trimming might have issues.
     "Type": "System.AppDomain",
     "Methods": [
-      "CreateInstance(System.String,System.String,System.Boolean,System.Reflection.BindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[])",
-      "CreateInstance(System.String,System.String,System.Object[])",
-      "CreateInstance(System.String,System.String)",
-      "CreateInstanceAndUnwrap(System.String,System.String,System.Boolean,System.Reflection.BindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[])",
-      "CreateInstanceAndUnwrap(System.String,System.String,System.Object[])",
-      "CreateInstanceAndUnwrap(System.String,System.String)"
+      "CreateInstance",
+      "CreateInstanceAndUnwrap"
     ],
     "Aspect": "AssemblyTrim",
     "Warn": "CreateInstance over assembly and type name, if the assembly name is specified make sure the assembly is referenced, otherwise make sure the type is referenced and its .ctor is referenced",
@@ -81,12 +65,8 @@
     // TODO: This is also potentially dangerous for Single-File as we're loading assembly from a file path (Which may not exist in single-file)
     "Type": "System.AppDomain",
     "Methods": [
-      "CreateInstanceFrom(System.String,System.String,System.Boolean,System.Reflection.BindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[])",
-      "CreateInstanceFrom(System.String,System.String,System.Object[])",
-      "CreateInstanceFrom(System.String,System.String)",
-      "CreateInstanceFromAndUnwrap(System.String,System.String,System.Boolean,System.Reflection.BindingFlags,System.Reflection.Binder,System.Object[],System.Globalization.CultureInfo,System.Object[])",
-      "CreateInstanceFromAndUnwrap(System.String,System.String,System.Object[])",
-      "CreateInstanceFromAndUnwrap(System.String,System.String)"
+      "CreateInstanceFrom",
+      "CreateInstanceFromAndUnwrap"
     ],
     "Aspect": "AssemblyTrim",
     "Warn": "CreateInstance over assembly and type name, if the assembly name is specified make sure the assembly is referenced, otherwise make sure the type is referenced and its .ctor is referenced",
@@ -97,12 +77,8 @@
     // TODO: This is also potentially dangerous for Single-File as we're loading assembly from a file path (Which may not exist in single-file)
     "Type": "System.AppDomain",
     "Methods": [
-      "ExecuteAssembly(System.String)",
-      "ExecuteAssembly(System.String,System.String[])",
-      "ExecuteAssembly(System.String,System.String[],System.Byte[],System.Configuration.Assemblies.AssemblyHashAlgorithm)",
-      "ExecuteAssemblyByName(System.String)",
-      "ExecuteAssemblyByName(System.String,System.String[])",
-      "ExecuteAssemblyByName(System.Reflection.AssemblyName,System.String[])"
+      "ExecuteAssembly",
+      "ExecuteAssemblyByName"
     ],
     "Aspect": "AssemblyTrim",
     "Warn": "ExecuteAssembly: make sure the assembly to be executed is referenced and visible to the linker and that the type and method of the entry point is referenced as well.",
@@ -124,10 +100,7 @@
     // Basically the same as Assembly.Load - assembly loading
     "Type": "System.AppDomain",
     "Methods": [
-      "Load(System.Byte[])",
-      "Load(System.Byte[],System.Byte[])",
-      "Load(System.Reflection.AssemblyName)",
-      "Load(System.String)"
+      "Load"
     ],
     "Aspect": "AssemblyTrim",
     "Warn": "Loading assembly from in-memory byte array or from a file. The new assembly may have references to assemblies/types/methods which were trimmed.",
@@ -146,8 +119,7 @@
     // CreateDelegate(System.Type,System.Reflection.MethodInfo)
     "Type": "System.Delegate",
     "Methods": [
-      ".ctor(System.Object,System.String)",
-      ".ctor(System.Type,System.String)",
+      ".ctor",
       "CreateDelegate(System.Type,System.Type,System.String,System.Boolean,System.Boolean)",
       "CreateDelegate(System.Type,System.Type,System.String,System.Boolean)",
       "CreateDelegate(System.Type,System.Type,System.String)",
@@ -250,6 +222,75 @@
     "Category": "ToInvestigate"
   },
 
+
+  // System.Reflection.Assembly
+  {
+    "Type": "System.Reflection.Assembly",
+    "Methods": [
+      "get_CodeBase",
+      "get_EscapedCodeBase",
+      "get_Location"
+    ],
+    "Aspect": "SingleFile",
+    "Warn": "This property returns a file path, which in single-file scenario may not be a valid path or could be empty/null",
+    "Category": "SingleFileUnfriendly"
+  },
+
+  {
+    "Type": "System.Reflection.Assembly",
+    "Methods": [
+      "get_CustomAttributes",
+      "GetCustomAttributes",
+      "IsDefined" // This is dangerous due to inheritance - one can ask IsDefined(BaseAttribute), but linker could trim all derived attributes
+    ],
+    "Aspect": "TypeTrim",
+    "Warn": "If enabled the linker may trim attributes which are not refered to from code. This means that enumerating over attributes may return a trimmed list",
+    "Category": "KeepUsedAttributeTypesOnlyUnsafe"
+  },
+
+  {
+    "Type": "System.Reflection.Assembly",
+    "Methods": [
+      "get_DefinedTypes",
+      "get_ExportedTypes",
+      "get_Modules",
+      "GetExportedTypes",
+      "GetForwardedTypes",
+      "GetLoadedModules",
+      "GetModules",
+      "GetReferencedAssemblies",
+      "GetTypes"
+    ],
+    "Aspect": "TypeTrim",
+    "Warn": "When trimmed the enumeration may return a subset of the original list.",
+    "Category": "KnownReflection_EnumMetadata"
+  },
+
+  {
+    "Type": "System.Reflection.Assembly",
+    "Methods": [
+      "get_EntryPoint", // Investigate if linker always keeps the entry point - otherwise potentially unsafe
+      "GetFile", // Resource access - needs investigation
+      "GetFiles", //    Investigate if linker actually removes resources
+      "GetManifestResourceInfo",
+      "GetManifestResourceNames",
+      "GetManifestResourceStream",
+      "GetModule", // Can linker actually trim modules from assemblies - potentially dangerous
+      "GetSatelliteAssembly" // Can linker trim satellites?
+    ],
+    "Aspect": "MemberTrim",
+    "Warn": "TODO - investigate",
+    "Category": "ToInvestigate"
+  },
+
+  {
+    "Type": "System.Reflection.Assembly",
+    "Methods": [ "CreateInstance" ],
+    "Aspect": "TypeTrim",
+    "Warn": "Make sure that the type is references and that its .ctor is also referenced",
+    "Category": "CreateInstance"
+  },
+
   {
     // Assembly.GetType
     // Adds a type to closure on existing assembly, so type trimming will not work correctly.
@@ -257,14 +298,273 @@
     //   This could mean problems even for assembly trimming, if we rely on type tracking to figure out which assemblies to keep.
     "Type": "System.Reflection.Assembly",
     "Methods": [
-      "GetType(System.String)",
-      "GetType(System.String,System.Boolean)",
-      "GetType(System.String,System.Boolean,System.Boolean)"
+      "GetType"
     ],
     "Aspect": "TypeTrim",
     "Warn": "GetType on a string, make sure that the type is referenced",
     "Category": "KnownReflection"
   },
+
+  {
+    // Assembly.Load
+    // Load(string) and Load(AssemblyName) are effectively assembly references which the linker
+    // doesn't see (as they are dynamic) - so they might need an assembly to be kept which linker could
+    // otherwise trim. So for this reason they are dangerous.
+    // It might be possible to recognize constants and handle those cases in the linker in the future.
+
+    // Load(byte[]) and Load(byte[], byte[]) are effectively introducing new code into the app which the linker
+    // didn't see. As such this code might have dependencies on things in the app which nothing else has dependencies on.
+    // So linker might trim things this new code may need. For this reason usage of these APIs is dangerous.
+
+    // LoadWithPartialName is basically just Load(string) - with a slightly different argument checks and error handling.
+    // Loads new code from a file - similar to Load(byte[]) in its effect. It introduces new code into the app
+    // which may have references to trimmed things - thus potentially breaking as linker can't analyze the code
+    // added via these APIs.
+    // TODO: LoadFile, LoadFrom and UnsafeLoadFrom are also potentially single-file dangerous
+    "Type": "System.Reflection.Assembly",
+    "Methods": [
+      "Load",
+      "LoadWithPartialName",
+      "LoadFile",
+      "LoadFrom",
+      "UnsafeLoadFrom",
+      "LoadModule", // Non implemented by .NET Core, but semantically same as Load
+      "ReflectionOnlyLoad", // Not implemented but semantically unsafe
+      "ReflectionOnlyLoadFrom" // Not implemented but semantically unsafe
+    ],
+    "Aspect": "AssemblyTrim",
+    "Warn": "Make sure that linker sees the assemblies loaded like this",
+    "Category": "KnownReflection"
+  },
+
+  // System.Reflection.Binder
+  // The Binder itself is a purely abstract class so in itself is safe. Derived classes might not be though.
+
+  // System.Reflection.ConstructorInfo
+  // Since linker doesn't trim method bodies only: If there's a way to get to the ConstructorInfo
+  // then the constructor must be present and exist as a fully functional method.
+  // As such it must be callable as well. So even ConstructorInfo.Invoke is safe then.
+
+  // System.Reflection.CustomAttributeData
+  {
+    "Type": "System.Reflection.CustomAttributeData",
+    "Methods": [ "GetCustomAttributes" ],
+    "Aspect": "TypeTrim",
+    "Warn": "Linker may trim attributes",
+    "Category": "KeepUsedAttributeTypesOnlyUnsafe"
+  },
+  // Otherwise the CustomAttributeData is safe, mainly because linker preserves entire attributes always.
+
+  // System.Reflection.CustomAttributeExtensions
+  // The way linker works with attributes is that:
+  // It will keep attributes where the type of the attribute has been marked by usage elsewhere than the attribute usage itself.
+  // This means that just adding the attribute to a method will not preserve the attribute. But asking for it explicitly by its type
+  // will preserve the attribute.
+  // The problem is that most of the attribute accessors in reflection APIs handle inheritance, so for example, I can ask for
+  // attribute of type BaseAttribute and it will get me all attributes which derive from BaseAttribute.
+  // This is not how linker works, linker will only perserve attributes which type is explicitly referenced. So in the above sample
+  // in un-trimmed app I would get a BaseAttribute instance back (in reality some DerivedAttribute instance), but in trimmed app
+  // I would not get anything back since the attribute would be trimmed.
+  // If the linker is ran in this more aggresive mode, accessing pretty much any attribute through the reflection APIs is potentially
+  // dangerous.
+  {
+    "Type": "System.Reflection.CustomAttributeExtensions",
+    "Methods": [
+      "GetCustomAttribute",
+      "GetCustomAttributes",
+      "IsDefined"
+    ],
+    "Aspect": "MemberTrim",
+    "Warn": "Linker may trim attributes",
+    "Category": "KeepUsedAttributeTypesOnlyUnsafe"
+  },
+
+  // System.Reflection.EventInfo
+  {
+    "Type": "System.Reflection.EventInfo",
+    "Methods": [ "GetOtherMethods" ],
+    "Aspect": "MemberTrim",
+    "Warn": "Linker may trim methods",
+    "Category": "KnownReflection_EnumMetadata"
+  },
+  // The other members of EventInfo are all safe
+  // Linker always keeps add, remove and invoke methods on an event.
+
+  // System.Reflection.ExceptionHandlingClause
+  // Not dangerous as it doesn't introduce any new dependencies on its own (and one must have a MethodBody to get to it anyway)
+
+  // System.Refleciton.FieldInfo
+  {
+    "Type": "System.Reflection.FieldInfo",
+    // TODO: This is probably safe as the only way in IL to get a field handle is something like ldtoken
+    // which the linker will recognize and mark the field accordingly.
+    // May need additional investigation.
+    "Methods": [
+      // TODO: This is probably safe as the only way in IL to get a field handle is something like ldtoken
+      // which the linker will recognize and mark the field accordingly.
+      // May need additional investigation.
+      "GetFieldFromHandle",
+
+      // TODO: Don't know what exactly this does and if linker has any effect on it
+      "GetOptionalCustomModifiers",
+      "GetRequiredCustomModifiers"
+    ],
+    "Aspect": "MemberTrim",
+    "Warn": "TODO - investigate",
+    "Category": "ToInvestigate"
+  },
+  // The other member are safe:
+  // If the field exists (that is the app was able to get the FieldInfo instance)
+  // then its value should be accessible.
+
+  // System.Reflection.InterfaceMapping
+  //  in itself it's not dangerous, getting to it might be and that should be marked.
+
+  // System.Reflection.LocalVariableInfo
+  //  only accessible through method body
+
+  // System.Reflection.ManifestResourceInfo
+  //  should be safe
+
+  // System.Reflection.MemberInfo
+  {
+    // Typical problem with custom attributes and inheritance - see CustomAttributeExtensions for details
+    "Type": "System.Reflection.MemberInfo",
+    "Methods": [
+      "get_CustomAttributes",
+      "GetCustomAttributes",
+      "GetCustomAttributesData",
+      "IsDefined"
+    ],
+    "Aspect": "TypeTrim",
+    "Warn": "Linker may remove attributes",
+    "Category": "KeepUsedAttributeTypesOnlyUnsafe"
+  },
+
+  // System.Reflection.MethodBase
+  {
+    "Type": "System.Reflection.MethodBase",
+    // TODO: This is probably safe as the only way in IL to get a method handle is something like ldtoken
+    // which the linker will recognize and mark the method accordingly.
+    // May need additional investigation.
+    "Methods": [ "GetMethodFromHandle" ],
+    "Aspect": "MemberTrim",
+    "Warn": "TODO - investigate",
+    "Category": "ToInvestigate"
+  },
+
+  // System.Reflection.MethodBody
+  //   We guard the functionality of MethodBody via the access to it - which is MethodBase.GetMethodBody
+  //   as such the functionality of this class alone is safe.
+
+  // System.Reflection.MethodInfo
+  {
+    "Type": "System.Reflection.MethodInfo",
+    "Methods": [ "get_ReturnTypeCustomAttributes" ],
+    "Aspect": "TypeTrim",
+    "Warn": "Liner may remove attributes",
+    "Category": "KeepUsedAttributeTypesOnlyUnsafe"
+  },
+  {
+    "Type": "System.Reflection.MethodInfo",
+    "Methods": [
+      // This might be safe
+      // The only problem is the Type of the delegate to create. It must exist, otherwise the Type of it would not be available
+      // but it's unclear if there are additional requirements on it which CreateDelegate has.
+      "CreateDelegate",
+
+      // Probably safe on its own as all inputs are Type and thus must exist, but it may become problem if linker decides
+      // to perform generic instantiation analysis.
+      "MakeGenericMethod"
+    ],
+    "Aspect": "MemberTrim",
+    "Warn": "TODO - investigate",
+    "Category": "ToInvestigate"
+  },
+  // The other members should be safe as if the app has MethodInfo the method and its body must exist
+
+  // System.Reflection.Module
+  // This is very similar to Assembly, so lot of the same annotations here
+  {
+    "Type": "System.Reflection.Module",
+    "Methods": [
+      "FindTypes",
+      "GetTypes"
+    ],
+    "Aspect": "TypeTrim",
+    "Warn": "Linker may trim some types and thus return a subset",
+    "Category": "KnownReflection_EnumMetadata"
+  },
+  {
+    "Type": "System.Reflection.Module",
+    "Methods": [
+      "GetType"
+    ],
+    "Aspect": "TypeTrim",
+    "Warn": "Make sure the type is referenced",
+    "Category": "KnownReflection"
+  },
+  {
+    "Type": "System.Reflection.Module",
+    "Methods": [
+      "get_CustomAttributes",
+      "GetCustomAttributes",
+      "GetCustomAttributesData",
+      "IsDefined"
+    ],
+    "Aspect": "TypeTrim",
+    "Warn": "Linker may trim attributes",
+    "Category": "KeepUsedAttributeTypesOnlyUnsafe"
+  },
+  {
+    "Type": "System.Reflection.Module",
+    "Methods": [
+      "GetField",
+      "GetMethod",
+      "GetMethodImpl"
+    ],
+    "Aspect": "MemberTrim",
+    "Warn": "Make sure the member is referenced",
+    "Category": "KnownReflection"
+  },
+  {
+    "Type": "System.Reflection.Module",
+    // In trimmed apps these may return different sets as compared to un-trimmed apps.
+    // Unlike some of the other methods with similar behavior these are very likely to break apps
+    // so marking them as dangerous for now.
+    "Methods": [
+      "GetFields",
+      "GetMethods"
+    ],
+    "Aspect": "MemberTrim",
+    "Warn": "Some members may be trimmed",
+    "Category": "KnownReflection_EnumMetadata"
+  },
+  // GetModuleHandleImpl
+  // GetObjectData
+  // GetPEKind
+  //   These should be safe
+  {
+    "Type": "System.Reflection.Module",
+    // TODO - these can be potentially dangerous but it's unclear to which degree (aspect)
+    //  what if the token is a reference to a different assembly?
+    // Also - maybe this is safe since if the token exists, it must work
+    // but then again if the token is trimmed this will fail.
+    // Potentially dangerous - if the metadata token comes from unknown source, the result of this operation is effectively unknown
+    // to the linker.
+    "Methods": [
+      "ResolveField",
+      "ResolveMember",
+      "ResolveMethod",
+      "ResolveSignature",
+      "ResolveString",
+      "ResolveType"
+    ],
+    "Aspect": "TypeTrim",
+    "Warn": "TODO - investigate",
+    "Category": "ToInvestigate"
+  },
+
 
   {
     "Type": "-",

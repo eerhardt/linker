@@ -138,7 +138,10 @@
     // All these methods enumerate types, when type trimming some may not be present.
     "Type": "System.Type",
     "Methods": [
-      "FindInterfaces"
+      "FindInterfaces",
+      "GetInterfaces",
+      "GetNestedTypes",
+      "GetMembers" // GetMembers is marked as TypeTrim because it can return nested types
     ],
     "Aspect": "TypeTrim",
     "Warn": "Some interfaces may be trimmed if they're not used by the app, so the search may not include all possible candidate",
@@ -152,8 +155,6 @@
       "GetConstructors",
       "GetEvents",
       "GetFields",
-      "GetInterfaces",
-      "GetMembers",
       "GetProperties",
       "GetInterfaceMap" // ??? This is questionable - does linker actually trim members of interfaces?
     ],
@@ -168,7 +169,6 @@
       "GetConstructor",
       "GetEvent",
       "GetField",
-      "GetMember",
       "GetMethod",
       "GetMethodImpl",
       "GetProperty",
@@ -192,6 +192,7 @@
       "GetType(System.String,System.Func`2<System.Reflection.AssemblyName,System.Reflection.Assembly>,System.Func`4<System.Reflection.Assembly,System.String,System.Boolean,System.Type>,System.Boolean,System.Boolean)",
       "ReflectionOnlyGetType",
       "GetInterface",
+      "GetMember", // TypeTrim because it can return nested types
       "GetNestedType",
       "GetTypeFromCLSID", // TODO - validate this, but it's likely basically equivalent to ask for type by name
       "GetTypeFromProgID" // TODO - validate this, but it's likely basically equivalent to ask for type by name
@@ -563,6 +564,187 @@
     "Aspect": "TypeTrim",
     "Warn": "TODO - investigate",
     "Category": "ToInvestigate"
+  },
+
+  // System.Reflection.ParameterInfo
+  {
+    "Type": "System.Reflection.ParameterInfo",
+    "Methods": [
+      "get_CustomAttributes",
+      "GetCustomAttributes",
+      "GetCustomAttributesData",
+      "IsDefined"
+    ],
+    "Aspect": "TypeTrim",
+    "Warn": "Linker may trim attributes",
+    "Category": "KeepUsedAttributeTypesOnlyUnsafe"
+  },
+  {
+    "Type": "System.Reflection.ParameterInfo",
+    "Methods": [
+      // TODO: don't know what this actually does and if linker has any effect on it
+      "GetOptionalCustomModifiers",
+      "GetRequiredCustomModifiers",
+      // TODO: don't know what this is for
+      "get_Member",
+      // TODO: deserialization? ??
+      "GetRealObject"
+    ],
+    "Aspect": "MemberTrim",
+    "Warn": "TODO - investigate",
+    "Category": "ToInvestigate"
+  },
+
+  // System.Reflection.PropertyInfo
+  {
+    "Type": "System.Reflection.PropertyInfo",
+    "Methods": [
+      // These seem to be dangerous - linker seems to only keep get_/set_ methods if it sees direct reference to them
+      // which would mean that accessing these through reflection only could break.
+      "get_GetMethod",
+      "GetAccessors",
+      "GetGetMethod",
+      "get_SetMethod",
+      "GetSetMethod",
+      "GetValue",
+      "SetValue",
+      // TODO: don't know what this actually does and if linker has any effect on it
+      "GetOptionalCustomModifiers",
+      "GetRequiredCustomModifiers"
+    ],
+    "Aspect": "MemberTrim",
+    "Warn": "TODO - investigate",
+    "Category": "ToInvestigate"
+  },
+  // GetConstantValue
+  // GetRawConstantValue
+  //    these should be safe
+
+  // System.Reflection.ReflectionContext
+  // TODO: No idea what this is for - could not find any use cases either
+  {
+    "Type": "System.Reflection.ReflectionContext",
+    "Methods": [
+      ".ctor"
+    ],
+    "Aspect": "MemberTrim",
+    "Warn": "TODO - investigate",
+    "Category": "ToInvestigate"
+  },
+
+  // System.Reflection.ReflectionTypeLoadException
+  {
+    // Deserialization ??
+    "Type": "System.Reflection.ReflectionTypeLoadException",
+    "Methods": [ "GetObjectData" ],
+    "Aspect": "MemberTrim",
+    "Warn": "TODO - investigate",
+    "Category": "ToInvestigate"
+  },
+
+  // System.Reflection.TypeDelegator
+  {
+    // All these methods enumerate types, when type trimming some may not be present.
+    "Type": "System.Reflection.TypeDelegator",
+    "Methods": [
+      "GetInterfaces",
+      "GetNestedTypes",
+      "GetMembers" // GetMembers is marked as TypeTrim because it can return nested types
+    ],
+    "Aspect": "TypeTrim",
+    "Warn": "Some interfaces may be trimmed if they're not used by the app, so the search may not include all possible candidate",
+    "Category": "KnownReflection_EnumMetadata"
+  },
+  {
+    // All these methods enumerate members on a type, when member trimming some may not be present.
+    "Type": "System.Reflection.TypeDelegator",
+    "Methods": [
+      "GetConstructors",
+      "GetEvents",
+      "GetFields",
+      "GetInterfaces",
+      "GetProperties",
+      "GetInterfaceMap" // ??? This is questionable - does linker actually trim members of interfaces?
+    ],
+    "Aspect": "MemberTrim",
+    "Warn": "Some members may have been trimmed, this method may no return the full list anymore",
+    "Category": "KnownReflection_EnumMetadata"
+  },
+
+  {
+    "Type": "System.Reflection.TypeDelegator",
+    "Methods": [
+      "GetConstructorImpl",
+      "GetEvent",
+      "GetField",
+      "GetMethodImpl",
+      "GetPropertyImpl",
+      "InvokeMember"
+    ],
+    "Aspect": "MemberTrim",
+    "Warn": "The requested member may have been trimmed, please make sure that there's a reference to it",
+    "Category": "KnownReflection"
+  },
+  {
+    "Type": "System.Reflection.TypeDelegator",
+    "Methods": [
+      "GetNestedType",
+      "GetMember" // TypeTrim because it can return nested type
+    ],
+    "Aspect": "TypeTrim",
+    "Warn": "Add reference to the typ",
+    "Category": "KnownReflection"
+  },
+
+  // System.Reflection.TypeInfo
+  {
+    // All these methods enumerate types, when type trimming some may not be present.
+    "Type": "System.Reflection.TypeInfo",
+    "Methods": [
+      "get_DeclaredNestedTypes",
+      "get_ImplementedInterfaces",
+      "get_DeclaredMembers"  // Can return nested type
+    ],
+    "Aspect": "TypeTrim",
+    "Warn": "Some interfaces may be trimmed if they're not used by the app, so the search may not include all possible candidate",
+    "Category": "KnownReflection_EnumMetadata"
+  },
+  {
+    // All these methods enumerate members on a type, when member trimming some may not be present.
+    "Type": "System.Reflection.TypeInfo",
+    "Methods": [
+      "get_DeclaredConstructors",
+      "get_DeclaredEvents",
+      "get_DeclaredMethods",
+      "GetDeclaredMethods",
+      "get_DeclaredFields",
+      "get_DeclaredProperties"
+    ],
+    "Aspect": "MemberTrim",
+    "Warn": "Some members may have been trimmed, this method may no return the full list anymore",
+    "Category": "KnownReflection_EnumMetadata"
+  },
+
+  {
+    "Type": "System.Reflection.TypeInfo",
+    "Methods": [
+      "GetDeclaredEvent",
+      "GetDeclaredField",
+      "GetDeclaredMethod",
+      "GetDeclaredProperty"
+    ],
+    "Aspect": "MemberTrim",
+    "Warn": "The requested member may have been trimmed, please make sure that there's a reference to it",
+    "Category": "KnownReflection"
+  },
+  {
+    "Type": "System.Reflection.TypeInfo",
+    "Methods": [
+      "GetDeclaredNestedType"
+    ],
+    "Aspect": "TypeTrim",
+    "Warn": "Add reference to the typ",
+    "Category": "KnownReflection"
   },
 
 

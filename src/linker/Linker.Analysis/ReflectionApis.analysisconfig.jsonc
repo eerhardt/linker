@@ -703,7 +703,7 @@
     "Methods": [
       "get_DeclaredNestedTypes",
       "get_ImplementedInterfaces",
-      "get_DeclaredMembers"  // Can return nested type
+      "get_DeclaredMembers" // Can return nested type
     ],
     "Aspect": "TypeTrim",
     "Warn": "Some interfaces may be trimmed if they're not used by the app, so the search may not include all possible candidate",
@@ -745,6 +745,37 @@
     "Aspect": "TypeTrim",
     "Warn": "Add reference to the typ",
     "Category": "KnownReflection"
+  },
+
+
+  // System.Runtime.CompilerServices.RuntimeHelpers
+  {
+    "Type": "System.Runtime.CompilerServices.RuntimeHelpers",
+    // Creates an instance of an object without calling its .ctor (leaves all fields initialized to zeroes).
+    // Intended use case are de-serializers.
+    // The problem is that linker will not see this as an instantiation attempt and will not mark all virtuals to be kept.
+    "Methods": [ "GetUninitializedObject" ],
+    "Aspect": "MemberTrim",
+    "Warn": "The type may be missing some virtual methods if only used via this method",
+    "Category": "KnownReflection"
+  },
+  {
+    "Type": "System.Runtime.CompilerServices.RuntimeHelpers",
+    // Explicitly runs .cctor on a type specified by a runtime type handle. Needs investigation, maybe the only way to really do this
+    // is to reference the type from the code and thus linker will see the type (and thus mark its .cctor), but this needs verification.
+    "Methods": [ "RunClassConstructor" ],
+    "Aspect": "TypeTrim",
+    "Warn": "TODO - investigate",
+    "Category": "ToInvestigate"
+  },
+  {
+    "Type": "System.Runtime.CompilerServices.RuntimeHelpers",
+    // Explicitly runs module constructor on a module. Needs investigation, mainly around how the caller can get
+    // the module handle and if linker will see it correctly and keep the module ctor.
+    "Methods": [ "RunModuleConstructor" ],
+    "Aspect": "TypeTrim",
+    "Warn": "TODO - investigate",
+    "Category": "ToInvestigate"
   },
 
 

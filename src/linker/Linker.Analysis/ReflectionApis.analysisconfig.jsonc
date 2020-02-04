@@ -155,6 +155,7 @@
       "GetConstructors",
       "GetEvents",
       "GetFields",
+      "GetMethods",
       "GetProperties",
       "GetInterfaceMap" // ??? This is questionable - does linker actually trim members of interfaces?
     ],
@@ -453,6 +454,16 @@
     "Warn": "TODO - investigate",
     "Category": "ToInvestigate"
   },
+  {
+    "Type": "System.Reflection.MethodBase",
+    // TODO: Linker doesn't trim method bodies, so if the app has access to MethodBase instance, then that method
+    // will have its body present as well.
+    // That said linker may rewrite the body of the method, so technically it is breaking.
+    "Methods": [ "GetMethodBody" ],
+    "Aspect": "MemberTrim",
+    "Warn": "TODO - investigate",
+    "Category": "ToInvestigate"
+  },
 
   // System.Reflection.MethodBody
   //   We guard the functionality of MethodBody via the access to it - which is MethodBase.GetMethodBody
@@ -662,7 +673,7 @@
       "GetConstructors",
       "GetEvents",
       "GetFields",
-      "GetInterfaces",
+      "GetMethods",
       "GetProperties",
       "GetInterfaceMap" // ??? This is questionable - does linker actually trim members of interfaces?
     ],
@@ -695,6 +706,17 @@
     "Warn": "Add reference to the typ",
     "Category": "KnownReflection"
   },
+  {
+    "Type": "System.Reflection.TypeDelegator",
+    "Methods": [
+      "GetCustomAttributes",
+      "IsDefined" // This is dangerous due to inheritance - one can ask IsDefined(BaseAttribute), but linker could trim all derived attributes
+    ],
+    "Aspect": "TypeTrim",
+    "Warn": "If enabled the linker may trim attributes which are not refered to from code. This means that enumerating over attributes may return a trimmed list",
+    "Category": "KeepUsedAttributeTypesOnlyUnsafe"
+  },
+
 
   // System.Reflection.TypeInfo
   {

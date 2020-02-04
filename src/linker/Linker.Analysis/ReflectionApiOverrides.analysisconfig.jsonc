@@ -1,0 +1,18 @@
+﻿[
+  {
+    "Type": "System.RuntimeType",
+    "Methods": [
+      "GetMethodBase(System.RuntimeType,System.RuntimeMethodHandleInternal)"
+    ],
+    "Aspect": "MemberTrim",
+    "Suppress": "RuntimeType.GetMethodBase calls Type.GetMember on the method name for which it already has method handle, so the method must exist",
+    "Category": "KnownReflection"
+  },
+  {
+    "Type": "System.Reflection.CustomAttribute",
+    "Methods": [ "FilterCustomAttributeRecord" ],
+    "Aspect": "TypeTrim",
+    "Suppress": "Calls ResolveType and ResolveMethod on a token which it gets from a custom attribute record. Those must exist otherwise the CA record would be invalid to begin with",
+    "Category": "KnownReflection"
+  }
+]

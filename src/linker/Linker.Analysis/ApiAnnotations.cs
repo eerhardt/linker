@@ -122,36 +122,8 @@ namespace Mono.Linker.Analysis
 				return methodName == method.Name;
 			}
 			else {
-				return methodName == GetSignature (method);
+				return methodName == TypeChecker.GetSignature (method);
 			}
-		}
-
-		static string GetSignature (MethodDefinition method)
-		{
-			var builder = new StringBuilder ();
-			builder.Append (method.Name);
-			if (method.HasGenericParameters) {
-				builder.Append ('<');
-
-				for (int i = 0; i < method.GenericParameters.Count - 1; i++)
-					builder.Append ($"{method.GenericParameters [i]},");
-
-				builder.Append ($"{method.GenericParameters [method.GenericParameters.Count - 1]}>");
-			}
-
-			builder.Append ("(");
-
-			if (method.HasParameters) {
-				for (int i = 0; i < method.Parameters.Count - 1; i++) {
-					builder.Append ($"{method.Parameters [i].ParameterType},");
-				}
-
-				builder.Append (method.Parameters [method.Parameters.Count - 1].ParameterType);
-			}
-
-			builder.Append (")");
-
-			return builder.ToString ();
 		}
 	}
 }

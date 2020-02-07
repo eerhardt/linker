@@ -13,6 +13,7 @@ namespace Mono.Linker.Analysis
 	{
 		None,
 		Caller,
+		ImmediatedCaller,
 		Callee,
 	}
 
@@ -43,6 +44,105 @@ namespace Mono.Linker.Analysis
 			}
 		}
 
+		private struct ImmedaiteCallerKey
+		{
+			public string AssemblyName { get; set; }
+			public string CallerCallee { get; set; }
+			public string Category { get; set; }
+
+			public ImmedaiteCallerKey (AnalyzedStacktrace stackTrace)
+			{
+				var caller = stackTrace.stacktrace.asMethods.Skip (1).First ();
+				var callee = stackTrace.stacktrace.asMethods.First ();
+
+				AssemblyName = caller.Module.Assembly.Name.Name;
+				CallerCallee = TypeChecker.GetMethodFullNameWithSignature (caller) + " depends on "
+					+ TypeChecker.GetMethodFullNameWithSignature (callee);
+				Category = stackTrace.annotation.Category;
+			}
+		}
+
+		public void WriteImmediateCallerStacktraces (IEnumerable<AnalyzedStacktrace> stacktraces)
+		{
+			var assemblyGroups = stacktraces
+				.GroupBy (s => new ImmedaiteCallerKey (s))
+				.GroupBy (g => (g.Key.AssemblyName, g.Key.Category))
+				.GroupBy (g => g.Key.AssemblyName);
+
+			if (json) {
+				textWriter.WriteLine ("{");
+			}
+			bool first = true;
+			foreach (var assemblyGroup in assemblyGroups.OrderBy (g => g.Key)) {
+				if (json) {
+					if (first)
+						first = false;
+					else
+						textWriter.WriteLine (",");
+
+					textWriter.WriteLine ("\"" + assemblyGroup.Key + "\": {");
+				} else {
+					textWriter.WriteLine ("###");
+					textWriter.WriteLine ("### assembly: " + assemblyGroup.Key);
+					textWriter.WriteLine ("###");
+				}
+
+				bool firstCategory = true;
+				foreach (var categoryGroup in assemblyGroup.OrderByDescending (g => g.SelectMany (v => v).Count ())) {
+
+					if (json) {
+						if (firstCategory)
+							firstCategory = false;
+						else
+							textWriter.WriteLine (",");
+
+						textWriter.WriteLine ("\"" + categoryGroup.Key.Category + "\": {");
+					} else {
+						textWriter.WriteLine ("@@@");
+						textWriter.WriteLine ("@@@ category: " + assemblyGroup.Key);
+						textWriter.WriteLine ("@@@");
+					}
+
+					bool firstMethod = true;
+					foreach (var methodGroup in categoryGroup.OrderByDescending (g => g.Count ())) {
+						if (json) {
+							if (firstMethod)
+								firstMethod = false;
+							else
+								textWriter.WriteLine (",");
+
+							textWriter.WriteLine ("\"" + methodGroup.First ().annotation.Category + " - " + methodGroup.Key.CallerCallee + "\": [");
+						} else {
+							textWriter.WriteLine ("---");
+							textWriter.WriteLine ("--- " + methodGroup.Key.CallerCallee);
+							textWriter.WriteLine ("---");
+						}
+
+						firstStacktrace = true;
+						foreach (var st in methodGroup) {
+							WriteStacktrace (st);
+						}
+
+						if (json) {
+							textWriter.Write ("]");
+						}
+					}
+
+					if (json) {
+						textWriter.Write ("}");
+					}
+				}
+
+				if (json) {
+					textWriter.Write ("}");
+				}
+			}
+			if (json) {
+				textWriter.WriteLine ();
+				textWriter.WriteLine ("}");
+			}
+		}
+
 		public void WriteGroupedStacktraces (IOrderedEnumerable<KeyValuePair<MethodDefinition, HashSet<AnalyzedStacktrace>>> stacktracesPerGroup)
 		{
 			if (json) {
@@ -57,10 +157,10 @@ namespace Mono.Linker.Analysis
 						first = false;
 					else
 						textWriter.WriteLine (",");
-					textWriter.WriteLine ("\"" + FormatMethod(group) + "\": [");
+					textWriter.WriteLine ("\"" + TypeChecker.GetMethodFullNameWithSignature (group) + "\": [");
 				} else {
 					textWriter.WriteLine ("---");
-					textWriter.WriteLine ("--- stacktraces for group: " + FormatMethod(group));
+					textWriter.WriteLine ("--- stacktraces for group: " + TypeChecker.GetMethodFullNameWithSignature (group));
 					textWriter.WriteLine ("---");
 				}
 				firstStacktrace = true;
@@ -101,34 +201,10 @@ namespace Mono.Linker.Analysis
 			this.textWriter = textWriter;
 		}
 
-		public static string FormatMethod (MethodReference m)
-		{
-			StringBuilder sb = new StringBuilder ();
-			sb.Append (m.DeclaringType.FullName);
-			sb.Append ("::");
-			sb.Append (m.Name);
-			sb.Append ("(");
-			var ps = m.Parameters;
-			if (ps != null && ps.Count > 0) {
-				sb.Append (ps [0].ParameterType);
-				sb.Append (" ");
-				sb.Append (ps [0].Name);
-				for (int i = 1; i < ps.Count; i++) {
-					sb.Append (", ");
-					sb.Append (ps [i].ParameterType);
-					sb.Append (" ");
-					sb.Append (ps [i].Name);
-				}
-			}
-			sb.Append (") -> ");
-			sb.Append (m.ReturnType);
-			return sb.ToString ();
-		}
-
 		public void PrintEdge ((MethodDefinition caller, MethodDefinition callee) e)
 		{
-			textWriter.WriteLine (Formatter.FormatMethod (e.caller));
-			textWriter.WriteLine (" -> " + Formatter.FormatMethod (e.callee));
+			textWriter.WriteLine (TypeChecker.GetMethodFullNameWithSignature (e.caller));
+			textWriter.WriteLine (" -> " + TypeChecker.GetMethodFullNameWithSignature (e.callee));
 		}
 
 

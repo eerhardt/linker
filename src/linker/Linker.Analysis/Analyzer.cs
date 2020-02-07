@@ -389,6 +389,8 @@ namespace Mono.Linker.Analysis
 			switch (grouping) {
 				case Grouping.Callee:
 					return st.stacktrace.asMethods.First ();
+				case Grouping.ImmediatedCaller:
+					return st.stacktrace.asMethods.Skip (1).First ();
 				case Grouping.Caller:
 					return st.stacktrace.asMethods.Last ();
 				default:
@@ -403,6 +405,11 @@ namespace Mono.Linker.Analysis
 
 			stacktrace_count++;
 
+			if (allStacktraces == null) {
+				allStacktraces = new List<AnalyzedStacktrace> ();
+			}
+			allStacktraces.Add (st);
+
 			if (grouping != Grouping.None) {
 				// bucketize based on group
 				if (stacktracesPerGroup == null) {
@@ -414,11 +421,6 @@ namespace Mono.Linker.Analysis
 					stacktracesPerGroup [group] = sts;
 				}
 				sts.Add (st);
-			} else {
-				if (allStacktraces == null) {
-					allStacktraces = new List<AnalyzedStacktrace> ();
-				}
-				allStacktraces.Add (st);
 			}
 
 			// bucketize based on interesting reason
@@ -470,6 +472,8 @@ namespace Mono.Linker.Analysis
 				foreach (var st in allStacktraces) {
 					formatter.WriteStacktrace (st);
 				}
+			} else if (grouping == Grouping.ImmediatedCaller) {
+				formatter.WriteImmediateCallerStacktraces (allStacktraces);
 			} else {
 				var ordered = stacktracesPerGroup.OrderByDescending (e => e.Value.Count);
 				formatter.WriteGroupedStacktraces (ordered);

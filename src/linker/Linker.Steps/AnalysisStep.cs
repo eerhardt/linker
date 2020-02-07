@@ -34,7 +34,7 @@ namespace Mono.Linker.Steps
 			using (StreamWriter sw = new StreamWriter (jsonFile)) {
 				(IntCallGraph intCallGraph, IntMapping<MethodDefinition> mapping) = IntCallGraph.CreateFrom (cg);
 				var formatter = new Formatter (cg, mapping, json: true, sw);
-				var analyzer = new Analyzer (cg, intCallGraph, mapping, apiFilter, reflectionPatternRecorder.ResolvedReflectionCalls, formatter, Grouping.Callee);
+				var analyzer = new Analyzer (cg, intCallGraph, mapping, apiFilter, reflectionPatternRecorder.ResolvedReflectionCalls, formatter, Grouping.ImmediatedCaller);
 				analyzer.Analyze ();
 			}
 		}

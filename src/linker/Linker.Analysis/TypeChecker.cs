@@ -1,5 +1,6 @@
 using Mono.Cecil;
 using System;
+using System.Text;
 
 namespace Mono.Linker.Analysis
 {
@@ -115,6 +116,44 @@ namespace Mono.Linker.Analysis
 				}
 			}
 			return true;
+		}
+
+		static StringBuilder AppendMethodSignature (StringBuilder builder, MethodDefinition method)
+		{
+			builder.Append (method.Name);
+			if (method.HasGenericParameters) {
+				builder.Append ('<');
+
+				for (int i = 0; i < method.GenericParameters.Count - 1; i++)
+					builder.Append ($"{method.GenericParameters [i]},");
+
+				builder.Append ($"{method.GenericParameters [method.GenericParameters.Count - 1]}>");
+			}
+
+			builder.Append ("(");
+
+			if (method.HasParameters) {
+				for (int i = 0; i < method.Parameters.Count - 1; i++) {
+					builder.Append ($"{method.Parameters [i].ParameterType},");
+				}
+
+				builder.Append (method.Parameters [method.Parameters.Count - 1].ParameterType);
+			}
+
+			builder.Append (")");
+
+			return builder;
+		}
+
+		public static string GetSignature (MethodDefinition method) => AppendMethodSignature (new StringBuilder(), method).ToString ();
+
+		public static string GetMethodFullNameWithSignature (MethodDefinition method)
+		{
+			var builder = new StringBuilder ();
+			builder.Append (method.DeclaringType.FullName);
+			builder.Append ("::");
+			AppendMethodSignature (builder, method);
+			return builder.ToString ();
 		}
 	}
 }

@@ -14,5 +14,67 @@
     "Aspect": "TypeTrim",
     "Suppress": "Calls ResolveType and ResolveMethod on a token which it gets from a custom attribute record. Those must exist otherwise the CA record would be invalid to begin with",
     "Category": "KnownReflection"
+  },
+  {
+    "Type": "System.Type",
+    "Methods": [
+      "IsAssignableFrom"
+    ],
+    "Aspect": "TypeTrim",
+    "Suppress": "Calls GetInterfaces, but in this case the interface it's looking for must be present (if it should be) as it's the input parameter",
+    "Category": "KnownReflection"
+  },
+  {
+    "Type": "System.Type",
+    "Methods": [
+      "GetEnumUnderlyingType",
+      "GetEnumNames",
+      "IsEnumDefined"
+    ],
+    "Aspect": "MemberTrim",
+    "Suppress": "Calls GetFields internally but is perfectly safe as linker keeps all fields on enum types.",
+    "Category": "KnownReflection"
+  },
+  {
+    "Type": "System.RuntimeType",
+    "Methods": [
+      "IsAssignableFrom"
+    ],
+    "Aspect": "TypeTrim",
+    "Suppress": "Calls GetInterfaces, but in this case the interface it's looking for must be present (if it should be) as it's the input parameter",
+    "Category": "KnownReflection"
+  },
+  {
+    // Mark all stuff in the RuntimeTypeCache as safe
+    // it's calling lot of reflection APIs but in turns is only used by reflection itself
+    // so any entrypoints should be marked accordingly.
+    "Type": "System.RuntimeType/RuntimeTypeCache",
+    "Methods": [
+      "*"
+    ],
+    "Aspect": "TypeTrim",
+    "Suppress": "Reflection internal cache, entry points to reflection should guard the actual unsafe features",
+    "Category": "KnownReflection"
+  },
+
+  {
+    "Type": "System.Attribute",
+    "Methods": [
+      "GetHashCode",
+      "Equals"
+    ],
+    "Aspect": "MemberTrim",
+    "Suppress": "Calls GetFields internally but the value should be representative of all the included fields, not all possible fields.",
+    "Category": "KnownReflection"
+  },
+  {
+    "Type": "System.ValueType",
+    "Methods": [
+      "GetHashCode",
+      "Equals"
+    ],
+    "Aspect": "MemberTrim",
+    "Suppress": "Calls GetFields internally but the value should be representative of all the included fields, not all possible fields.",
+    "Category": "KnownReflection"
   }
 ]

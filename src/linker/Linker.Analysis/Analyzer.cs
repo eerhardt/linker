@@ -398,6 +398,9 @@ namespace Mono.Linker.Analysis
 
 		public void RecordStacktrace (AnalyzedStacktrace st)
 		{
+			if (st.annotation is SuppressApiAnnotation)
+				return;
+
 			stacktrace_count++;
 
 			if (grouping != Grouping.None) {

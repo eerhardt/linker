@@ -1,0 +1,21 @@
+[
+  //{
+  //  Unfortunately this also blocks ResourceManager.GetString calls from the same method - which is probably still important to report
+  //  "Type": "System.SR,System.Private.CoreLib",
+  //  "Methods": [ "InternalGetResourceString" ],
+  //  "Aspect": "MemberTrim",
+  //  "Suppress": "The method should be either refactored or attributed with PreserveDependencyAttribute to mark the necessary .cctors. But currently it works just fine because linker will mark the necessary dependencies through other ways.",
+  //  "Category": "KnownReflection"
+  //}
+
+  {
+    "Type": "System.Reflection.RuntimeParameterInfo",
+    "Methods": [
+      "GetDefaultValueInternal"
+    ],
+    "Aspect": "TypeTrim",
+    "Suppress": "The method needs to be able to say that all attributes which derive from CustomConstantAttribute must be kept as it effectively calls GetCustomAttributes<CustomConstantAttribute>() and CustomConstantAttribute is not sealed (it's abstract in fact).",
+    "Category": "KnownReflection"
+  }
+
+]

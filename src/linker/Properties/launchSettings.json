@@ -2,7 +2,7 @@
   "profiles": {
     "Mono.Linker": {
       "commandName": "Project",
-      "commandLineArgs": "@E:\\dotnet\\vitkaras\\environments\\vitkarasd_data\\linker-analysis-experiments-private.response"
+      "commandLineArgs": "@E:\\dotnet\\vitkaras\\environments\\vitkaras1_data\\linker-analysis-experiments.response"
     }
   }
 }

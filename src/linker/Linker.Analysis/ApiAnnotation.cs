@@ -1,10 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using Mono.Cecil;
+using System.Collections.Generic;
 
 namespace Mono.Linker.Analysis
 {
 	public abstract class ApiAnnotation
 	{
 		public string TypeFullName { get; set; }
+		public TypeDefinition Type { get; set; }
+
 		public IEnumerable<string> MethodNames { get; set; }
 
 		public CodeReadinessAspect Aspect { get; set; }

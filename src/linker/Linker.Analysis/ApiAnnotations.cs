@@ -56,6 +56,7 @@ namespace Mono.Linker.Analysis
 					}
 
 					annotation.TypeFullName = typeName;
+					annotation.Type = typeDefinition;
 
 					if (annotation == null) {
 						throw new Exception ($"Failure reading linker analysis configuration '{filePath}'. Annotation for '{typeName}' doesn't specifies any action property ('Warn' or 'Suppress').");
@@ -103,7 +104,7 @@ namespace Mono.Linker.Analysis
 		public ApiAnnotation GetAnnotation(MethodDefinition method, CodeReadinessAspect aspect)
 		{
 			string fullTypeName = method.DeclaringType.FullName;
-			foreach (var annotation in _annotations [aspect].Where (a => a.TypeFullName == fullTypeName)) {
+			foreach (var annotation in _annotations [aspect].Where (a => a.Type == method.DeclaringType)) {
 				if (annotation.MethodNames.Any (methodName => MatchesMethodName (methodName, method))) {
 					return annotation;
 				}
@@ -114,7 +115,10 @@ namespace Mono.Linker.Analysis
 
 		static bool MatchesMethodName (string methodName, MethodDefinition method)
 		{
-			if (methodName.IndexOf ('(') == -1) {
+			if (methodName == "*") {
+				return true;
+			}
+			else if (methodName.IndexOf ('(') == -1) {
 				return methodName == method.Name;
 			}
 			else {

@@ -801,6 +801,52 @@
   },
 
 
+  // System.Runtime.Loader.AssemblyLoadContext
+  {
+    "Type": "System.Runtime.Loader.AssemblyLoadContext",
+    // TODO: Investigate if these are dangerous - basically similar to Assembly.Load
+    "Methods": [
+      "GetAssemblyName",
+      "Load",
+      "LoadFromAssemblyName",
+      "LoadFromAssemblyPath",
+      "LoadFromNativeImagePath",
+      "LoadUnmanagedDll",
+      "LoadUnmanagedDllFromPath"
+    ],
+    "Aspect": "AssemblyTrim",
+    "Warn": "Loading additional assemblies means bringing code which linker could not analyze.",
+    "Category": "Reflection - AssemblyLoad"
+  },
+
+
+  // System.Resources.ResourceManager
+  //
+  // .ctor(System.Type)
+  // The Type is actually only used for two things:
+  // - Get the Assembly of the type - which is then used as a fallback for satellite resource loading
+  // - Get the FullName/Namespace of the type to scope the search for resource strings in the satellite assembly
+  // Neither is a problem for linker, so in this case we just need to make sure the linker 
+  // 
+  // .ctor(System.String,System.Reflection.Assembly)
+  // The assembly is only used to lookup attributes and to load resources from
+  // - Attribute lookup - only happens for hardcoded attribute sealed types, and so even if linker
+  //   is trimming attributes (optional) it will keep this one as the ResourceManager
+  //   has a hard reference to the attribute type it's looking for.
+  // - Loading resources from - linker doesn't trim resources and even if it would
+  //   not finding them would be intentional in that case.
+  {
+    "Type": "System.Resources.ResourceManager",
+    "Methods": [
+      ".ctor(System.String,System.String,System.Type)",
+      ".ctor(System.String,System.Reflection.Assembly,System.Type)",
+      "CreateFileBasedResourceManager"
+    ],
+    "Aspect": "TypeTrim",
+    "Warn": "Custom resource set",
+    "Category": "CustomResourceSet"
+  },
+
 
   // Overrides
   // This section covers all APIs which are marked as dangerous on base class (for example MemberInfo.GetCustomAttributes which is abstract)

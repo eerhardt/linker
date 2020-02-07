@@ -96,7 +96,7 @@ namespace Mono.Linker.Analysis
 						else
 							textWriter.WriteLine (",");
 
-						textWriter.WriteLine ("\"" + categoryGroup.Key.Category + "\": {");
+						textWriter.WriteLine ("    \"" + categoryGroup.Key.Category + "\": {");
 					} else {
 						textWriter.WriteLine ("@@@");
 						textWriter.WriteLine ("@@@ category: " + assemblyGroup.Key);
@@ -111,7 +111,7 @@ namespace Mono.Linker.Analysis
 							else
 								textWriter.WriteLine (",");
 
-							textWriter.WriteLine ("\"" + methodGroup.First ().annotation.Category + " - " + methodGroup.Key.CallerCallee + "\": [");
+							textWriter.WriteLine ("        \"" + methodGroup.First ().annotation.Category + " - " + methodGroup.Key.CallerCallee + "\": [");
 						} else {
 							textWriter.WriteLine ("---");
 							textWriter.WriteLine ("--- " + methodGroup.Key.CallerCallee);

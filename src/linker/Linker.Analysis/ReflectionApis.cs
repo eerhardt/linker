@@ -663,48 +663,48 @@ namespace Mono.Linker.Analysis
 						return InterestingReason.KnownReflection;
 					}
 					break;
-				case "System.Resources.ResourceManager":
-					switch (method.Name) {
-						case "get_FallbackLocation":
-						case "GetSatelliteContractVersion":
-							return InterestingReason.None;
-						case "CommonAssemblyInit":
-							// This is a private method which is called by .ctors - we mark the .ctors instead
-							// as safe/unsafe as appropriate.
-							return InterestingReason.None;
-						case ".ctor":
-							if (method.Parameters.Count == 1 &&
-								method.Parameters [0].ParameterType.FullName == "System.Type") {
-								// The Type is actually only used for two things:
-								// - Get the Assembly of the type - which is then used as a fallback for satellite resource loading
-								// - Get the FullName/Namespace of the type to scope the search for resource strings in the satellite assembly
-								// Neither is a problem for linker, so in this case we just need to make sure the linker 
-								return InterestingReason.None;
-							}
-							if (method.Parameters.Count == 2 &&
-								method.Parameters [0].ParameterType.FullName == "System.String" &&
-								method.Parameters [1].ParameterType.FullName == "System.Reflection.Assembly") {
-								// The assembly is only used to lookup attributes and to load resources from
-								// - Attribute lookup - only happens for hardcoded attribute types, and so even if linker
-								//   is trimming attributes (optional) it will keep this one as the ResourceManager
-								//   has a hard reference to the attribute type it's looking for.
-								// - Loading resources from - linker doesn't trim resources and even if it would
-								//   not finding them would be intentional in that case.
-								return InterestingReason.None;
-							}
-							if (method.Parameters.Count == 3) {
-								foreach (var p in method.Parameters) {
-									if (p.ParameterType.FullName == "System.Type") {
-										return InterestingReason.CustomResourceSet;
-									}
-								}
-							}
-							break;
-						// OOPS: there's another public API we need to disable, because it calls the above.
-						case "CreateFileBasedResourceManager":
-							return InterestingReason.CustomResourceSet;
-					}
-					return InterestingReason.ToInvestigate;
+				//case "System.Resources.ResourceManager":
+				//	switch (method.Name) {
+				//		case "get_FallbackLocation":
+				//		case "GetSatelliteContractVersion":
+				//			return InterestingReason.None;
+				//		case "CommonAssemblyInit":
+				//			// This is a private method which is called by .ctors - we mark the .ctors instead
+				//			// as safe/unsafe as appropriate.
+				//			return InterestingReason.None;
+				//		case ".ctor":
+				//			if (method.Parameters.Count == 1 &&
+				//				method.Parameters [0].ParameterType.FullName == "System.Type") {
+				//				// The Type is actually only used for two things:
+				//				// - Get the Assembly of the type - which is then used as a fallback for satellite resource loading
+				//				// - Get the FullName/Namespace of the type to scope the search for resource strings in the satellite assembly
+				//				// Neither is a problem for linker, so in this case we just need to make sure the linker 
+				//				return InterestingReason.None;
+				//			}
+				//			if (method.Parameters.Count == 2 &&
+				//				method.Parameters [0].ParameterType.FullName == "System.String" &&
+				//				method.Parameters [1].ParameterType.FullName == "System.Reflection.Assembly") {
+				//				// The assembly is only used to lookup attributes and to load resources from
+				//				// - Attribute lookup - only happens for hardcoded attribute types, and so even if linker
+				//				//   is trimming attributes (optional) it will keep this one as the ResourceManager
+				//				//   has a hard reference to the attribute type it's looking for.
+				//				// - Loading resources from - linker doesn't trim resources and even if it would
+				//				//   not finding them would be intentional in that case.
+				//				return InterestingReason.None;
+				//			}
+				//			if (method.Parameters.Count == 3) {
+				//				foreach (var p in method.Parameters) {
+				//					if (p.ParameterType.FullName == "System.Type") {
+				//						return InterestingReason.CustomResourceSet;
+				//					}
+				//				}
+				//			}
+				//			break;
+				//		// OOPS: there's another public API we need to disable, because it calls the above.
+				//		case "CreateFileBasedResourceManager":
+				//			return InterestingReason.CustomResourceSet;
+				//	}
+				//	return InterestingReason.ToInvestigate;
 			}
 
 			if (method.DeclaringType.FullName.StartsWith ("System.Runtime.InteropServices")) {
@@ -823,29 +823,29 @@ namespace Mono.Linker.Analysis
 				return InterestingReason.None;
 			}
 
-			switch (method.DeclaringType.FullName) {
-				case "System.Runtime.Loader.AssemblyDependencyResolver":
-					// fine
-					break;
-				case "System.Runtime.Loader.AssemblyLoadContext":
-					switch (method.Name) {
-						case "GetAssemblyName":
-						case "Load":
-						case "LoadFromAssemblyName":
-						case "LoadFromAssemblyPath":
-						case "LoadFromInMemoryModule": // private
-						case "LoadFromInMemoryModuleInternal": // private
-						case "LoadFromPath": // private
-						case "LoadFromStream": // private
-											   // case "LoadTypeForWinRTTypeNameInContext": // private
-											   // case "LoadTypeForWinRTTypeNameInContextInternal": // private
-						case "LoadFromNativeImagePath":
-						case "LoadUnmanagedDll":
-						case "LoadUnmanagedDllFromPath":
-							return InterestingReason.KnownReflection;
-					}
-					break;
-			}
+			//switch (method.DeclaringType.FullName) {
+			//	case "System.Runtime.Loader.AssemblyDependencyResolver":
+			//		// fine
+			//		break;
+			//	case "System.Runtime.Loader.AssemblyLoadContext":
+			//		switch (method.Name) {
+			//			case "GetAssemblyName":
+			//			case "Load":
+			//			case "LoadFromAssemblyName":
+			//			case "LoadFromAssemblyPath":
+			//			case "LoadFromInMemoryModule": // private
+			//			case "LoadFromInMemoryModuleInternal": // private
+			//			case "LoadFromPath": // private
+			//			case "LoadFromStream": // private
+			//								   // case "LoadTypeForWinRTTypeNameInContext": // private
+			//								   // case "LoadTypeForWinRTTypeNameInContextInternal": // private
+			//			case "LoadFromNativeImagePath":
+			//			case "LoadUnmanagedDll":
+			//			case "LoadUnmanagedDllFromPath":
+			//				return InterestingReason.KnownReflection;
+			//		}
+			//		break;
+			//}
 
 			if (method.DeclaringType.FullName.StartsWith ("System.Runtime.Serialization")) {
 				// json serialization I guess? JsonFormatGeneratorStatigs::get_ExtensionDataProperty ends in GetProperty
@@ -1021,56 +1021,56 @@ namespace Mono.Linker.Analysis
 		}
 
 
-		public bool IsKnownDangerousReflectionApiUNUSED (MethodDefinition method)
-		{
-			// Assembly.Load*
-			if (method.DeclaringType.FullName == "System.Reflection.Assembly" &&
-				(method.Name == "Load" ||
-				 method.Name == "LoadFile" ||
-				 method.Name == "LoadFrom" ||
-				 method.Name == "LoadModule")) {
-				foreach (var p in method.Parameters) {
-					if (p.ParameterType.FullName == "System.String") {
-						return true;
-					}
-					if (p.ParameterType.FullName == "System.Reflection.AssemblyName") {
-						return true;
-					}
-				}
-			}
+		//public bool IsKnownDangerousReflectionApiUNUSED (MethodDefinition method)
+		//{
+		//	// Assembly.Load*
+		//	if (method.DeclaringType.FullName == "System.Reflection.Assembly" &&
+		//		(method.Name == "Load" ||
+		//		 method.Name == "LoadFile" ||
+		//		 method.Name == "LoadFrom" ||
+		//		 method.Name == "LoadModule")) {
+		//		foreach (var p in method.Parameters) {
+		//			if (p.ParameterType.FullName == "System.String") {
+		//				return true;
+		//			}
+		//			if (p.ParameterType.FullName == "System.Reflection.AssemblyName") {
+		//				return true;
+		//			}
+		//		}
+		//	}
 
-			// ALC.
-			if (method.DeclaringType.FullName == "System.Runtime.Loader.AssemblyLoadContext" &&
-				(method.Name == "LoadFrom" ||
-				 method.Name == "LoadFrom")) {
-				foreach (var p in method.Parameters) {
-					if (p.ParameterType.FullName == "System.String") {
-						return true;
-					}
-					if (p.ParameterType.FullName == "System.Reflection.AssemblyName") {
-						return true;
-					}
-				}
-			}
+		//	// ALC.
+		//	if (method.DeclaringType.FullName == "System.Runtime.Loader.AssemblyLoadContext" &&
+		//		(method.Name == "LoadFrom" ||
+		//		 method.Name == "LoadFrom")) {
+		//		foreach (var p in method.Parameters) {
+		//			if (p.ParameterType.FullName == "System.String") {
+		//				return true;
+		//			}
+		//			if (p.ParameterType.FullName == "System.Reflection.AssemblyName") {
+		//				return true;
+		//			}
+		//		}
+		//	}
 
-			//
-			if (method.DeclaringType.FullName == "System.Reflection.Assembly.Type" &&
-				(method.Name == "GetProperty" ||
-				 method.Name == "GetType" ||
-				 method.Name == "InvokeMember" ||
-				 method.Name == "GetMethods" ||
-				 method.Name == "GetMethod" ||
-				 method.Name == "GetMember" ||
-				 method.Name == "GetMembers")) {
-				foreach (var p in method.Parameters) {
-					if (p.ParameterType.FullName == "System.Reflection.AssemblyName") {
-						return true;
-					}
-				}
-			}
+		//	//
+		//	if (method.DeclaringType.FullName == "System.Reflection.Assembly.Type" &&
+		//		(method.Name == "GetProperty" ||
+		//		 method.Name == "GetType" ||
+		//		 method.Name == "InvokeMember" ||
+		//		 method.Name == "GetMethods" ||
+		//		 method.Name == "GetMethod" ||
+		//		 method.Name == "GetMember" ||
+		//		 method.Name == "GetMembers")) {
+		//		foreach (var p in method.Parameters) {
+		//			if (p.ParameterType.FullName == "System.Reflection.AssemblyName") {
+		//				return true;
+		//			}
+		//		}
+		//	}
 
-			return false;
-		}
+		//	return false;
+		//}
 
 		// if (method.DeclaringType.FullName.StartsWith("System.Reflection.Emit")) {
 		//     if (method.DeclaringType.FullName.EndsWith("TypeNameBuilder")) {

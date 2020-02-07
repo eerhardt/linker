@@ -283,21 +283,41 @@ namespace Mono.Linker.Analysis
 					if (publicOrVirtuals.Count > 0) { // if a public or virtual method was reachable from a reflection method...
 													  // only print the first one for now.
 						foreach (var destination in r.destinations) {
-							FormattedStacktrace f;
+							ReportedStacktrace f;
 							if (formatter != null) {
-								f = formatter.FormatStacktrace (r, destination: destination, reverse: true);
+								f = formatter.FormatStacktrace (r, destination: destination);
 							} else {
 								throw new Exception ("unable to format!");
 							}
-							// queue it for printing
-							var res = new AnalyzedStacktrace {
-								source = sourceInterestingMethod,
-								stacktrace = f,
-								category = CategorizeStacktraceWithCecil (f.asMethods),
-								annotation = interestingReasons [sourceInterestingMethod]
-							};
-							cq.Enqueue (res);
-							Interlocked.Add (ref num_stacktraces, 1);
+
+							var annotation = interestingReasons [sourceInterestingMethod];
+							if (annotation is LinkerUnanalyzedAnnotation linkerUnanalyzedAnnotation) {
+								foreach (var reflectionCalls in linkerUnanalyzedAnnotation.UnanalyzedReflectionCalls) {
+									ReportedStacktrace reportedStacktrace = new ReportedStacktrace {
+										Methods = f.Methods.Prepend (reflectionCalls.ReflectionMethod).ToList ()
+									};
+
+									cq.Enqueue (new AnalyzedStacktrace {
+										source = sourceInterestingMethod,
+										stacktrace = reportedStacktrace,
+										category = CategorizeStacktraceWithCecil (reportedStacktrace.Methods),
+										annotation = new WarnApiAnnotation {
+											Aspect = annotation.Aspect,
+											Category = annotation.Category,
+											Message = reflectionCalls.Message
+										}
+									}); ;
+								}
+							} else {
+								// queue it for printing
+								cq.Enqueue (new AnalyzedStacktrace {
+									source = sourceInterestingMethod,
+									stacktrace = f,
+									category = CategorizeStacktraceWithCecil (f.Methods),
+									annotation = annotation
+								});
+								Interlocked.Add (ref num_stacktraces, 1);
+							}
 						}
 					}
 				});
@@ -388,11 +408,11 @@ namespace Mono.Linker.Analysis
 			Debug.Assert (grouping != Grouping.None);
 			switch (grouping) {
 				case Grouping.Callee:
-					return st.stacktrace.asMethods.First ();
+					return st.stacktrace.Methods.First ();
 				case Grouping.ImmediatedCaller:
-					return st.stacktrace.asMethods.Skip (1).First ();
+					return st.stacktrace.Methods.Skip (1).First ();
 				case Grouping.Caller:
-					return st.stacktrace.asMethods.Last ();
+					return st.stacktrace.Methods.Last ();
 				default:
 					throw new Exception ("unsupported grouping!");
 			}
@@ -436,7 +456,7 @@ namespace Mono.Linker.Analysis
 			}
 
 
-			var method = st.stacktrace.asMethods.Last ();
+			var method = st.stacktrace.Methods.Last ();
 			if (method == null) {
 				Console.WriteLine ("TODO!");
 				return;
@@ -500,7 +520,7 @@ namespace Mono.Linker.Analysis
 			Console.WriteLine ("A random sample of " + sample + " stacktraces:");
 			foreach (var r in hs) {
 				var analyzedStacktrace = analyzedStacktraces [r];
-				Console.WriteLine (analyzedStacktrace.stacktrace.asString);
+				Formatter.WriteAsString (analyzedStacktrace, Console.Out);
 			}
 		}
 
@@ -669,7 +689,7 @@ namespace Mono.Linker.Analysis
 	public struct AnalyzedStacktrace
 	{
 		public int source;
-		public FormattedStacktrace stacktrace;
+		public ReportedStacktrace stacktrace;
 		public ApiAnnotation annotation;
 		public string category;
 	}

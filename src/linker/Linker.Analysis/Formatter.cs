@@ -1,10 +1,9 @@
+using Mono.Cecil;
 using System;
 using System.Collections.Generic;
-using Mono.Cecil;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Diagnostics;
 
 namespace Mono.Linker.Analysis
 {
@@ -17,18 +16,15 @@ namespace Mono.Linker.Analysis
 		Callee,
 	}
 
-	public struct FormattedStacktrace
+	public struct ReportedStacktrace
 	{
-		public string asString;
-		public List<string> asList;
-		public string asJson;
-		public List<MethodDefinition> asMethods;
+		public List<MethodDefinition> Methods;
 	}
 
 	public class Formatter
 	{
 		bool firstStacktrace = true;
-		public void WriteStacktrace (AnalyzedStacktrace st)
+		public void WriteStacktrace (AnalyzedStacktrace st, string indent = "")
 		{
 			if (json) {
 				if (!firstStacktrace) {
@@ -38,9 +34,9 @@ namespace Mono.Linker.Analysis
 					// output group separators.
 					firstStacktrace = false;
 				}
-				textWriter.WriteLine (st.stacktrace.asJson);
+				WriteAsJson (st, textWriter, indent);
 			} else {
-				textWriter.WriteLine (st.stacktrace.asString);
+				WriteAsString (st, textWriter, indent);
 			}
 		}
 
@@ -52,8 +48,8 @@ namespace Mono.Linker.Analysis
 
 			public ImmedaiteCallerKey (AnalyzedStacktrace stackTrace)
 			{
-				var caller = stackTrace.stacktrace.asMethods.Skip (1).First ();
-				var callee = stackTrace.stacktrace.asMethods.First ();
+				var caller = stackTrace.stacktrace.Methods.Skip (1).First ();
+				var callee = stackTrace.stacktrace.Methods.First ();
 
 				AssemblyName = caller.Module.Assembly.Name.Name;
 				CallerCallee = TypeChecker.GetMethodFullNameWithSignature (caller) + " depends on "
@@ -120,7 +116,7 @@ namespace Mono.Linker.Analysis
 
 						firstStacktrace = true;
 						foreach (var st in methodGroup) {
-							WriteStacktrace (st);
+							WriteStacktrace (st, indent: "            ");
 						}
 
 						if (json) {
@@ -177,23 +173,13 @@ namespace Mono.Linker.Analysis
 			}
 		}
 
-		TextWriter textWriter;
-		ApiFilter apiFilter;
-		ICallGraph<MethodDefinition> callGraph;
-		IntMapping<MethodDefinition> mapping;
+		readonly TextWriter textWriter;
+		readonly IntMapping<MethodDefinition> mapping;
+		readonly bool json = false;
 
-		bool json = false;
-
-		bool usingStringInput = true;
-
-		public Formatter (CallGraph callGraph,
-						 IntMapping<MethodDefinition> mapping,
-						 bool json = false,
-						 TextWriter textWriter = null)
+		public Formatter (IntMapping<MethodDefinition> mapping, bool json = false, TextWriter textWriter = null)
 		{
-			this.callGraph = callGraph;
 			this.mapping = mapping;
-			this.apiFilter = callGraph.apiFilter;
 			this.json = json;
 			if (textWriter == null) {
 				textWriter = Console.Out;
@@ -208,14 +194,35 @@ namespace Mono.Linker.Analysis
 		}
 
 
-		static string Prefix (int i)
+		public static void WriteAsString (AnalyzedStacktrace analyzedStacktrace, TextWriter writer, string indent = "")
 		{
-			//return String.Format("{0,-6}", i) + ": ";
-			// return i.ToString("D6") + ": ";
-			return "";
+			writer.Write (indent);
+			writer.Write ($"---------- ({analyzedStacktrace.annotation})");
+			foreach (var frameMethod in analyzedStacktrace.stacktrace.Methods) {
+				writer.Write (indent);
+				writer.Write(TypeChecker.GetMethodFullNameWithSignature (frameMethod));
+			}
 		}
 
-		public FormattedStacktrace FormatStacktrace (IntBFSResult r, int destination = -1, bool reverse = false)
+		public static void WriteAsJson (AnalyzedStacktrace analyzedStacktrace, TextWriter writer, string indent = "")
+		{
+			writer.Write (indent);
+			writer.WriteLine ("[");
+			writer.Write (indent);
+			writer.Write ($"\"---------- ({analyzedStacktrace.annotation})\"");
+			foreach (var frameMethod in analyzedStacktrace.stacktrace.Methods) {
+				writer.WriteLine (",");
+				writer.Write (indent);
+				writer.Write ("\"");
+				writer.Write (TypeChecker.GetMethodFullNameWithSignature (frameMethod));
+				writer.Write ("\"");
+			}
+			writer.WriteLine ();
+			writer.Write (indent);
+			writer.Write ("]");
+		}
+
+		public ReportedStacktrace FormatStacktrace (IntBFSResult r, int destination = -1)
 		{
 			if (destination == -1) {
 				Debug.Assert (r.destinations.Count == 1);
@@ -226,96 +233,33 @@ namespace Mono.Linker.Analysis
 			}
 			int i = destination; // this would be the interesting method normally.
 								 // however in my case, it's the public or virtual API.
-			var stacktrace = new List<string> ();
-			var output = new List<string> ();
 			var methods = new List<MethodDefinition> ();
 			MethodDefinition methodDef;
-			string prefix = Prefix (i);
-			if (usingStringInput) {
-				methodDef = mapping.intToMethod [i];
-				// should never be null, because we already skip nulls when determining entry points.
-				// yet somehow we get null...
-				// TODO: investigate this.
-				// Debug.Assert(methodDef != null);
-				if (!reverse) {
-					if (methodDef == null) {
-						output.Add (prefix + "---------- (???)");
-					} else {
-						output.Add (prefix + "---------- (" + apiFilter.GetApiAnnotation (methodDef).ToString () + ")");
-					}
-				}
+			methodDef = mapping.intToMethod [i];
+			// should never be null, because we already skip nulls when determining entry points.
+			// yet somehow we get null...
+			// TODO: investigate this.
+			// Debug.Assert(methodDef != null);
 
-				methods.Add (methodDef);
-				output.Add (prefix + methodDef.ToString ());
-				stacktrace.Add (methodDef.ToString ());
-			} else {
-				// methodDef = intToMethodDef[i];
-				// if (!reverse) {
-				//     output.Add(prefix + "---------- (" + apiFilter.GetInterestingReason(methodDef).ToString() + ")");
-				// }
-				// methodString = FormatMethod(methodDef);
-				// output.Add(prefix + methodString);
-				// stacktrace.Add(methodString);
-			}
+			methods.Add (methodDef);
+
 			while (r.prev [i] != i) {
 				i = r.prev [i];
-				prefix = Prefix (i);
-				if (usingStringInput) {
-					methodDef = mapping.intToMethod [i];
-					// this may give back a null methoddef. not sure why exactly.
-					if (methodDef == null) {
-						// TODO: investigate. for now, don't use FormatMethod.
-						// Console.WriteLine("resolution failure!");
-					}
-					methods.Add (methodDef);
-					output.Add (prefix + methodDef.ToString ());
-					stacktrace.Add (methodDef.ToString ());
-				} else {
-					// methodDef = intToMethodDef[i];
-					// var method = methodDef;
-					// methodString = FormatMethod(method);
-					// output.Add(prefix + methodString);
-					// stacktrace.Add(methodString);
+				methodDef = mapping.intToMethod [i];
+				// this may give back a null methoddef. not sure why exactly.
+				if (methodDef == null) {
+					// TODO: investigate. for now, don't use FormatMethod.
+					// Console.WriteLine("resolution failure!");
+					continue;
 				}
+				methods.Add (methodDef);
 			}
-			if (reverse) {
-				prefix = Prefix (i);
-				if (usingStringInput) {
-					methodDef = mapping.intToMethod [i];
-					if (methodDef == null) {
-						output.Add (prefix + "---------- (???)");
-					} else {
-						output.Add (prefix + "---------- (" + apiFilter.GetApiAnnotation (methodDef).ToString () + ")");
-					}
-				} else {
-					// methodDef = intToMethodDef[i];
-					// output.Add(prefix + "---------- (" + apiFilter.GetInterestingReason(methodDef).ToString() + ")");
-				}
-			}
+
 			Debug.Assert (i == r.source);
-			if (reverse) {
-				stacktrace.Reverse ();
-				output.Reverse ();
-				methods.Reverse ();
-			}
+			methods.Reverse ();
 
-			var sb = new StringBuilder ();
-			foreach (var o in output) {
-				sb.AppendLine (o);
-			}
-
-			string asString = null, asJson = null;
-			if (json) {
-				asJson = $"[{Environment.NewLine}    {string.Join ("," + Environment.NewLine + "    ", output.Select (s => "\"" + s + "\""))}{Environment.NewLine}]";
-			} else {
-				asString = sb.ToString ();
-			}
-
-			return new FormattedStacktrace {
-				asString = asString,
-				asList = stacktrace,
-				asJson = asJson,
-				asMethods = methods
+			return new ReportedStacktrace {
+				Methods = methods
 			};
 		}
 

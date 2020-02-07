@@ -1,5 +1,6 @@
 ﻿using Mono.Cecil;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Mono.Linker.Analysis
 {
@@ -22,6 +23,16 @@ namespace Mono.Linker.Analysis
 		public override string ToString ()
 		{
 			return $"{Category}: {Message}";
+		}
+	}
+
+	public class LinkerUnanalyzedAnnotation : ApiAnnotation
+	{
+		public List<(MethodDefinition ReflectionMethod, string Message)> UnanalyzedReflectionCalls { get; set; }
+
+		public override string ToString ()
+		{
+			return $"{Category}: {string.Join (" | ", UnanalyzedReflectionCalls.Select (c => c.Message))}";
 		}
 	}
 

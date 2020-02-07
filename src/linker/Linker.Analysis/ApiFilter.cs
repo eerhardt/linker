@@ -162,7 +162,7 @@ namespace Mono.Linker.Analysis
 
 	public class ApiFilter
 	{
-		readonly Dictionary<MethodDefinition, string> unanalyzedMethods;
+		readonly Dictionary<MethodDefinition, List<(MethodDefinition ReflectionMethod, string Message)>> unanalyzedMethods;
 		readonly HashSet<MethodDefinition> entryMethods;
 		readonly ApiAnnotations apiAnnotations;
 
@@ -171,7 +171,7 @@ namespace Mono.Linker.Analysis
 			// don't use any predetermined unanalyzed methods (from the linker)
 		}
 
-		public ApiFilter (Dictionary<MethodDefinition, string> unanalyzedMethods, HashSet<MethodDefinition> entryMethods, ApiAnnotations apiAnnotations)
+		public ApiFilter (Dictionary<MethodDefinition, List<(MethodDefinition,string)>> unanalyzedMethods, HashSet<MethodDefinition> entryMethods, ApiAnnotations apiAnnotations)
 		{
 			this.unanalyzedMethods = unanalyzedMethods;
 			this.entryMethods = entryMethods;
@@ -204,13 +204,13 @@ namespace Mono.Linker.Analysis
 
 		public ApiAnnotation GetApiAnnotation (MethodDefinition method)
 		{
-			if (unanalyzedMethods.TryGetValue (method, out var message)) {
-				return new WarnApiAnnotation () {
+			if (unanalyzedMethods.TryGetValue (method, out var records)) {
+				return new LinkerUnanalyzedAnnotation () {
 					TypeFullName = method.DeclaringType.FullName,
 					MethodNames = new string [] { method.Name },
 					Aspect = CodeReadinessAspect.None,
 					Category = nameof(InterestingReason.LinkerUnanalyzed),
-					Message = message
+					UnanalyzedReflectionCalls = records
 				};
 			}
 

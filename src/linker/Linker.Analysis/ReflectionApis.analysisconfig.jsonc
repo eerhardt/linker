@@ -221,7 +221,7 @@
     ],
     "Aspect": "MemberTrim",
     "Warn": "TODO",
-    "Category": "ToInvestigate"
+    "Category": "ToInvestigate_GenericInstantiation"
   },
 
 
@@ -621,7 +621,10 @@
       "SetValue",
       // TODO: don't know what this actually does and if linker has any effect on it
       "GetOptionalCustomModifiers",
-      "GetRequiredCustomModifiers"
+      "GetRequiredCustomModifiers",
+
+      // TODO: This is weird since the implementation relies on GetGetMethod/GetSetMethod which are potentially dangerous (see above)
+      "GetIndexParameters"
     ],
     "Aspect": "MemberTrim",
     "Warn": "TODO - investigate",
@@ -925,7 +928,7 @@
     ],
     "Aspect": "MemberTrim",
     "Warn": "TODO",
-    "Category": "ToInvestigate"
+    "Category": "ToInvestigate_GenericInstantiation"
   },
 
 
@@ -1000,7 +1003,7 @@
     ],
     "Aspect": "MemberTrim",
     "Warn": "TODO",
-    "Category": "ToInvestigate"
+    "Category": "ToInvestigate_GenericInstantiation"
   },
 
 
@@ -1076,7 +1079,9 @@
       "GetGetMethod",
       "GetSetMethod",
       "GetValue",
-      "SetValue"
+      "SetValue",
+      "GetIndexParametersNoCopy", // This depends on GetGetMethod/GetSetMethod
+      "GetIndexParameters"
     ],
     "Aspect": "MemberTrim",
     "Warn": "TODO - investigate",
@@ -1144,7 +1149,6 @@
     "Category": "ToInvestigate"
   },
   {
-    // Assembly.GetType
     // Adds a type to closure on existing assembly, so type trimming will not work correctly.
     // TODO: If the type is forwarded from the assembly in question it will also find it
     //   This could mean problems even for assembly trimming, if we rely on type tracking to figure out which assemblies to keep.
@@ -1155,6 +1159,49 @@
     "Aspect": "TypeTrim",
     "Warn": "GetType on a string, make sure that the type is referenced",
     "Category": "KnownReflection"
+  },
+
+  {
+    "Type": "System.Reflection.RuntimeModule",
+    // TODO - these can be potentially dangerous but it's unclear to which degree (aspect)
+    //  what if the token is a reference to a different assembly?
+    // Also - maybe this is safe since if the token exists, it must work
+    // but then again if the token is trimmed this will fail.
+    // Potentially dangerous - if the metadata token comes from unknown source, the result of this operation is effectively unknown
+    // to the linker.
+    "Methods": [
+      "ResolveField",
+      "ResolveMember",
+      "ResolveMethod",
+      "ResolveSignature",
+      "ResolveString",
+      "ResolveType"
+    ],
+    "Aspect": "TypeTrim",
+    "Warn": "TODO - investigate",
+    "Category": "ToInvestigate"
+  },
+
+  {
+    "Type": "System.Reflection.RuntimeMethodInfo",
+    // TODO: Linker doesn't trim method bodies, so if the app has access to MethodBase instance, then that method
+    // will have its body present as well.
+    // That said linker may rewrite the body of the method, so technically it is breaking.
+    "Methods": [ "GetMethodBody" ],
+    "Aspect": "MemberTrim",
+    "Warn": "TODO - investigate",
+    "Category": "ToInvestigate"
+  },
+
+  {
+    "Type": "System.Reflection.RuntimeConstructorInfo",
+    // TODO: Linker doesn't trim method bodies, so if the app has access to MethodBase instance, then that method
+    // will have its body present as well.
+    // That said linker may rewrite the body of the method, so technically it is breaking.
+    "Methods": [ "GetMethodBody" ],
+    "Aspect": "MemberTrim",
+    "Warn": "TODO - investigate",
+    "Category": "ToInvestigate"
   },
 
 

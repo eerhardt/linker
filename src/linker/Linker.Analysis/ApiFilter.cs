@@ -126,6 +126,9 @@ namespace Mono.Linker.Analysis
 		// should be fixed by preservedependency
 		CryptoConfigForwarderReflectionDependency,
 
+		// TypeBuilder public entry points
+		TypeBuilder,
+
 		// PInvoke,
 		KnownReflection,
 		KnownReflection_EnumMetadata,
@@ -318,15 +321,6 @@ namespace Mono.Linker.Analysis
 					reason == InterestingReason.SerializationBigHammer ||
 					reason == InterestingReason.KnownReflection ||
 					reason == InterestingReason.ToInvestigate);
-		}
-
-		bool IsLinkerUnanalyzedReflectionMethod (MethodDefinition method)
-		{
-			if (unanalyzedMethods == null) {
-				return false;
-			}
-
-			return unanalyzedMethods.ContainsKey (method);
 		}
 
 		InterestingReason GetInterestingReasonFromAnnotation (MethodDefinition method)

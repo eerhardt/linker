@@ -652,9 +652,16 @@ namespace Mono.Linker.Analysis
 					if (method.Name == "DefineDefaultConstructor") {
 						return InterestingReason.DefineDefaultConstructor;
 					}
-				}
 
-				return InterestingReason.ToInvestigate;
+					// Public static methods like GetMethod/GetConstructor/GetEvent
+					// are entrypoints to the typebuilder space
+					if (method.IsPublic && method.IsStatic) {
+						return InterestingReason.TypeBuilder;
+					}
+					if (method.IsConstructor) {
+						return InterestingReason.TypeBuilder;
+					}
+				}
 			}
 
 			switch (method.DeclaringType.FullName) {
@@ -988,8 +995,12 @@ namespace Mono.Linker.Analysis
 					}
 				}
 
-				if (method.DeclaringType.FullName == "System.Runtime.Serialization.SerializationException") {
-					// The entire type is a simple exception - perfectly safe
+				if (method.DeclaringType.FullName == "System.Runtime.Serialization.SerializationException" ||
+					method.DeclaringType.FullName == "System.Runtime.Serialization.DeserializationTracker" ||
+					method.DeclaringType.FullName == "System.Runtime.Serialization.StreamingContext" ||
+					method.DeclaringType.FullName == "System.Runtime.Serialization.SerializationInfoEnumerator" ||
+					method.DeclaringType.FullName == "System.Runtime.Serialization.SerializationEntry") {
+					// These types are perfectly safe
 					return InterestingReason.None;
 				}
 
@@ -1002,10 +1013,6 @@ namespace Mono.Linker.Analysis
 							// All of these are static and have no linker impact
 							return InterestingReason.None;
 					}
-				}
-
-				if (method.DeclaringType.FullName == "System.Runtime.Serialization.DeserializationTracker") {
-					return InterestingReason.None;
 				}
 
 				return InterestingReason.SerializationBigHammer;

@@ -35,14 +35,28 @@ namespace Mono.Linker.Analysis
 				}
 			}
 			foreach (var source in sources) {
-				var r = BFS (source, neighbors,
-							isDestination: isDestination,
-							isSource: isSource, // used to exclude paths that go through a different source
-							ignoreEdgesTo: ignoreEdgesTo,
-							ignoreEdgesFrom: ignoreEdgesFrom,
-							ignoreEdges: ignoreEdges,
-							returnMultiple: true);
-				resultAction (r);
+				if (neighbors [source] == null)
+					continue;
+
+				foreach (var firstCaller in neighbors [source]) {
+					if (firstCaller == source)
+						continue;
+
+					if (ignoreEdgesFrom != null && ignoreEdgesFrom [firstCaller])
+						continue;
+
+					var r = BFS (firstCaller, neighbors,
+								isDestination: isDestination,
+								isSource: isSource, // used to exclude paths that go through a different source
+								ignoreEdgesTo: ignoreEdgesTo,
+								ignoreEdgesFrom: ignoreEdgesFrom,
+								ignoreEdges: ignoreEdges,
+								returnMultiple: true);
+					r.prev [firstCaller] = source;
+					r.prev [source] = source;
+					r.source = source;
+					resultAction (r);
+				}
 			}
 		}
 

@@ -10,7 +10,11 @@ namespace Mono.Linker.Analysis
 
 		public void RecordDependency (object source, object target, bool marked)
 		{
-			if ((source is MethodDefinition sourceMD) && (target is MethodDefinition targetMD)) {
+			if ((source is MethodDefinition sourceMD) && (target is MethodReference targetMR)) {
+				var targetMD = targetMR.Resolve ();
+				if (targetMD == null)
+					return;
+
 				Dependencies.Add ((sourceMD, targetMD));
 			}
 		}

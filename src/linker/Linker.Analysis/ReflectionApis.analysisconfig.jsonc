@@ -128,8 +128,8 @@
       "CreateDelegate(System.Type,System.Object,System.String)"
     ],
     "Aspect": "MemberTrim",
-    "Warn": "",
-    "Category": ""
+    "Warn": "Delegate.CreateDelegate with a method name - effectively the same as Type.GetMethod",
+    "Category": "KnownReflection"
   },
 
 

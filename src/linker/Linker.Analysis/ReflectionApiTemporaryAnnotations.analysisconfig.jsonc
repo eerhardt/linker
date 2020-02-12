@@ -8,14 +8,14 @@
   //  "Category": "KnownReflection"
   //}
 
-  {
-    "Type": "System.Reflection.RuntimeParameterInfo",
-    "Methods": [
-      "GetDefaultValueInternal"
-    ],
-    "Aspect": "TypeTrim",
-    "Suppress": "The method needs to be able to say that all attributes which derive from CustomConstantAttribute must be kept as it effectively calls GetCustomAttributes<CustomConstantAttribute>() and CustomConstantAttribute is not sealed (it's abstract in fact).",
-    "Category": "KnownReflection"
-  }
+  //{
+  //  "Type": "System.Reflection.RuntimeParameterInfo",
+  //  "Methods": [
+  //    "GetDefaultValueInternal"
+  //  ],
+  //  "Aspect": "TypeTrim",
+  //  "Suppress": "The method needs to be able to say that all attributes which derive from CustomConstantAttribute must be kept as it effectively calls GetCustomAttributes<CustomConstantAttribute>() and CustomConstantAttribute is not sealed (it's abstract in fact).",
+  //  "Category": "KnownReflection"
+  //}
 
 ]

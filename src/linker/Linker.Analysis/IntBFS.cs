@@ -42,8 +42,20 @@ namespace Mono.Linker.Analysis
 					if (firstCaller == source)
 						continue;
 
-					if (ignoreEdgesFrom != null && ignoreEdgesFrom [firstCaller])
+					if (isSource != null && isSource [firstCaller])
 						continue;
+
+					if (!isDestination [firstCaller]) {
+						if (ignoreEdgesFrom != null && ignoreEdgesFrom [firstCaller])
+							continue;
+
+						int [] destinationsToIgnore = ignoreEdges? [source];
+						if (destinationsToIgnore != null && destinationsToIgnore.Contains (firstCaller))
+							continue;
+
+						if (ignoreEdgesTo != null && ignoreEdgesTo [firstCaller])
+							continue;
+					}
 
 					var r = BFS (firstCaller, neighbors,
 								isDestination: isDestination,
@@ -74,14 +86,14 @@ namespace Mono.Linker.Analysis
 		// continuesearchingfrom is assumed to be a subset of isDestination.
 		// that is, nonzeros that are not destinations are ignored.
 		public static IntBFSResult BFS (int source,
-									    int [] [] neighbors,
+										int [] [] neighbors,
 										bool [] isDestination,
-									    bool [] isSource = null,
-									    bool [] ignoreEdgesTo = null,
+										bool [] isSource = null,
+										bool [] ignoreEdgesTo = null,
 										bool [] ignoreEdgesFrom = null,
 										int [] [] ignoreEdges = null,
-									    bool returnMultiple = false,
-									    bool includeEdgesFromSource = false)
+										bool returnMultiple = false,
+										bool includeEdgesFromSource = false)
 		{
 			var discovered = new bool [neighbors.Length];
 			var q = new int [neighbors.Length];
@@ -132,6 +144,10 @@ namespace Mono.Linker.Analysis
 			q [q_end] = source;
 			q_end++;
 			discovered [source] = true;
+			if (isDestination [source]) {
+				destinations.Add (source);
+				goto Return;
+			}
 			while (q_begin < q_end) { // queue not empty
 				var u = q [q_begin];
 				q_begin++;

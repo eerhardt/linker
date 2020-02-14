@@ -739,6 +739,25 @@
     "Category": "ToInvestigate"
   },
 
+  // System.RuntimeTypeHandle
+  // !!! TODO !!! - lot of really dangerous internal calls, this seems to be the base of lot of reflection operations
+  // We need to annotate this correctly in order to validate that there are no places in CoreLib which we forgot.
+  // Almost all methods are internal, so this won't leak outside of CoreLib
+  {
+    "Type": "System.RuntimeTypeHandle",
+    "Methods": [
+      "CreateCaInstance",
+      "CreateInstance",
+      "CreateInstanceForAnotherGenericParameter"
+    ],
+    "Aspect": "MemberTrim",
+    "Warn": "Internal (should not leak outside of CoreLib) - These methods require the specified type to be instantiated.",
+    "Category": "KnownReflection - Internal"
+  },
+
+  // !!! Same goes for
+  // System.RuntimeFieldHanle
+  // System.RuntimeMethodHandle
 
   // System.Runtime.Loader.AssemblyLoadContext
   {

@@ -480,11 +480,6 @@
   {
     "Type": "System.Reflection.MethodInfo",
     "Methods": [
-      // This might be safe
-      // The only problem is the Type of the delegate to create. It must exist, otherwise the Type of it would not be available
-      // but it's unclear if there are additional requirements on it which CreateDelegate has.
-      "CreateDelegate",
-
       // Probably safe on its own as all inputs are Type and thus must exist, but it may become problem if linker decides
       // to perform generic instantiation analysis.
       "MakeGenericMethod"
@@ -493,6 +488,10 @@
     "Warn": "TODO - investigate",
     "Category": "ToInvestigate"
   },
+  // CreateDelegate - it's actually safe. The method must exist (as MethodInfo exists) and the delegate type parameter must also exist
+  //   so that there's value which is passed to the CreateDelegate. The added requirements are that the delegate type must inherit from
+  //   MulticastDelegate (which is not a linker's concern, that will be validated at runtime) and that it has the compiler generated methods
+  //   (like Invoke/BeginInvoke/EndInvoke). The latter is a linker's concern, but linker will keep all methods on delegate types always.
   // The other members should be safe as if the app has MethodInfo the method and its body must exist
 
   // System.Reflection.Module

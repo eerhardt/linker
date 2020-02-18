@@ -176,10 +176,10 @@ namespace Mono.Linker.Analysis
 		}
 
 		public static InterestingReason AnnotatedLinkerFriendly =
-			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.AnnotatedLinkerFriendly, "Linker friendly");
+			new InterestingReason (CodeReadinessAspect.AssemblyTrim, InterestingReasonKind.AnnotatedLinkerFriendly, "Linker friendly");
 
 		public static InterestingReason LinkerShouldNotWarn =
-			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.LinkerShouldNotWarn, "We think the linker should not warn in this case, but it does");
+			new InterestingReason (CodeReadinessAspect.AssemblyTrim, InterestingReasonKind.LinkerShouldNotWarn, "We think the linker should not warn in this case, but it does");
 
 
 		public static InterestingReason SerializationBigHammer =
@@ -501,6 +501,8 @@ namespace Mono.Linker.Analysis
 
 		public ApiAnnotation GetApiAnnotation (MethodDefinition method)
 		{
+			CodeReadinessAspect requestedAspect = CodeReadinessAspect.MemberTrim;
+
 			if (unanalyzedMethods.TryGetValue (method, out var records)) {
 				return new LinkerUnanalyzedAnnotation () {
 					TypeFullName = method.DeclaringType.FullName,
@@ -511,32 +513,49 @@ namespace Mono.Linker.Analysis
 				};
 			}
 
-			ApiAnnotation annotation = this.apiAnnotations.GetAnnotation (method, CodeReadinessAspect.MemberTrim);
+			ApiAnnotation annotation = this.apiAnnotations.GetAnnotation (method, requestedAspect);
 			if (annotation != null) {
 				return annotation;
 			}
 
 			InterestingReason reason = GetInterestingReason (method);
-			if (reason == InterestingReason.AnnotatedLinkerFriendly) {
-				return new SuppressApiAnnotation () {
-					TypeFullName = method.DeclaringType.FullName,
-					MethodNames = new string [] { method.Name },
-					Aspect = reason.Aspect,
-					Category = reason.Kind.ToString (),
-					Reason = reason.Message
-				};
-			}
-			else if (reason != null) {
-				return new WarnApiAnnotation () {
-					TypeFullName = method.DeclaringType.FullName,
-					MethodNames = new string [] { method.Name },
-					Aspect = reason.Aspect,
-					Category = reason.Kind.ToString (),
-					Message = reason.Message
-				};
+			if (reason != null && IsApplicableAnnotation (reason.Aspect, requestedAspect)) {
+				if (reason.Kind == InterestingReasonKind.AnnotatedLinkerFriendly) {
+					return new SuppressApiAnnotation () {
+						TypeFullName = method.DeclaringType.FullName,
+						MethodNames = new string [] { method.Name },
+						Aspect = reason.Aspect,
+						Category = reason.Kind.ToString (),
+						Reason = reason.Message
+					};
+				} else {
+					return new WarnApiAnnotation () {
+						TypeFullName = method.DeclaringType.FullName,
+						MethodNames = new string [] { method.Name },
+						Aspect = reason.Aspect,
+						Category = reason.Kind.ToString (),
+						Message = reason.Message
+					};
+				}
 			}
 
 			return null;
+		}
+
+		private static bool IsApplicableAnnotation (CodeReadinessAspect annotationAspect, CodeReadinessAspect requestedAspect)
+		{
+			if (requestedAspect == annotationAspect)
+				return true;
+
+			if (requestedAspect == CodeReadinessAspect.TypeTrim &&
+				annotationAspect == CodeReadinessAspect.AssemblyTrim)
+				return true;
+
+			if (requestedAspect == CodeReadinessAspect.MemberTrim &&
+				(annotationAspect == CodeReadinessAspect.TypeTrim || annotationAspect == CodeReadinessAspect.AssemblyTrim))
+				return true;
+
+			return false;
 		}
 
 		InterestingReason GetInterestingReasonFromAnnotationToInvestigate (MethodDefinition method)

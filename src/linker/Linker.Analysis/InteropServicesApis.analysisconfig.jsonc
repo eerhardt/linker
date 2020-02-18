@@ -1,0 +1,131 @@
+﻿[
+  {
+    "Type": "System.Runtime.InteropServices.CoClassAttribute",
+    "Methods": [ "*" ],
+    "Aspect": "TypeTrim",
+    "Warn": "These contain type references in the attribute properties. We need to make sure that linker can root types referenced like this.",
+    "Category": "ToInvestigate-COM"
+  },
+  {
+    "Type": "System.Runtime.InteropServices.ComDefaultInterfaceAttribute",
+    "Methods": [ "*" ],
+    "Aspect": "TypeTrim",
+    "Warn": "These contain type references in the attribute properties. We need to make sure that linker can root types referenced like this.",
+    "Category": "ToInvestigate-COM"
+  },
+  {
+    "Type": "System.Runtime.InteropServices.ComEventInterfaceAttribute",
+    "Methods": [ "*" ],
+    "Aspect": "TypeTrim",
+    "Warn": "These contain type references in the attribute properties. We need to make sure that linker can root types referenced like this.",
+    "Category": "ToInvestigate-COM"
+  },
+  {
+    "Type": "System.Runtime.InteropServices.ComSourceInterfaceAttribute",
+    "Methods": [ "*" ],
+    "Aspect": "TypeTrim",
+    "Warn": "These contain type references in the attribute properties. We need to make sure that linker can root types referenced like this.",
+    "Category": "ToInvestigate-COM"
+  },
+
+  {
+    "Type": "System.Runtime.InteropServices.GuidAttribute",
+    "Methods": [ "*" ],
+    "Aspect": "TypeTrim",
+    "Warn": "Indicates COM scenario - unknown impact",
+    "Category": "ToInvestigate-COM"
+  },
+  {
+    "Type": "System.Runtime.InteropServices.ProgIdAttribute",
+    "Methods": [ "*" ],
+    "Aspect": "TypeTrim",
+    "Warn": "Indicates COM scenario - unknown impact",
+    "Category": "ToInvestigate-COM"
+  },
+
+  {
+    "Type": "System.Runtime.InteropServices.Marshal",
+    "Methods": [
+      "GetTypeFromCLSID",
+      "BindToMoniker",
+      "CreateAggregatedObject",
+      "CreateWrapperOfType",
+      "GetComInterfaceForObject",
+      "GetComObjectData",
+      "GetEndComSlot",
+      "GetStartComSlot",
+      "GetDispatchForObject",
+      "GetIUnknownForObject",
+      "GetObjectForIUnknown",
+      "GetTypedObjectForIUnknown",
+      "GetUniqueObjectForIUnknown",
+      "IsComObject",
+      "IsTypeVisibleFromCom",
+      "QueryInterface",
+      "ReleaseComObject",
+      "SetComObjectData"
+    ],
+    "Aspect": "TypeTrim",
+    "Warn": "Indicates COM scenario - unknown impact",
+    "Category": "ToInvestigate-COM"
+  },
+  // GenerateGuidForType
+  // GenerateProgIdForType
+  //   these should be fine
+  {
+    "Type": "System.Runtime.InteropServices.Marshal",
+    "Methods": [
+      "GetDelegateForFunctionPointer",
+      "GetNativeVariantForObject",
+      "GetObjectForNativeVariant",
+      "GetObjectsForNativeVariants"
+    ],
+    "Aspect": "TypeTrim",
+    "Warn": "ToInvestigate - TODO",
+    "Category": "ToInvestigate"
+  },
+  {
+    "Type": "System.Runtime.InteropServices.Marshal",
+    "Methods": [
+      "OffsetOf",
+      "SizeOf",
+      "StructureToPtr",
+      "PtrToStructure" // This is not only problematic due to layout, but it also requires the type to be instantiated (to have .ctor)
+    ],
+    "Aspect": "MemberTrim",
+    "Warn": "ExactLayout - these require the linker to keep the exact layout of the class/struct. This works for struct, but is not guaranteed for classes.",
+    "Category": "ExactLayout"
+  },
+
+  // System.Runtime.InteropServices.MemoryMarshal
+  //   Lot of dangerous code in terms of type safety (for example allows reading types from flat array of bytes and so on)
+  //   but nothing linker unfriendly - everything is based on generics so the types used must be explicitly referenced
+  //   from calling code.
+
+  {
+    // This can bring new code into the process. It is native code, but what if it's something like C++/CLI
+    // or something else which calls back to managed not through the PInvokes but through manual invocation
+    // or through hosting API. In those cases this new code could depend on types/members which are trimmed
+    // by the linker.
+    "Type": "System.Runtime.InteropServices.NativeLibrary",
+    "Methods": [ "*" ],
+    "Aspect": "AssemblyTrim",
+    "Warn": "ToInvestigate-NativeLibrary - can bring new code into the process",
+    "Category": "ToInvestigate-NativeLibrary"
+  },
+
+  // System.Runtime.InteropServices.SafeBuffer
+  //   Lot of potentially dangerous code in terms of type safety, but nothing linker related. All the code is based on generics
+  //   and so the types must be explicitly referenced by calling code.
+
+  // System.Runtime.InteropServices.SafeHandle
+  //   Safe handle is about resource management, it has no way to import new functionality
+
+  {
+    "Type": "-",
+    "Methods": [],
+    "Aspect": "MemberTrim",
+    "Warn": "",
+    "Category": ""
+  }
+]

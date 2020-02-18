@@ -804,6 +804,47 @@
     "Category": "CustomResourceSet"
   },
 
+  // System.Reflection.Emit.TypeBuilder
+  {
+    "Type": "System.Reflection.Emit.TypeBuilder",
+    "Methods": [
+      "ctor",
+      "GetMethod(System.Type,System.Reflection.MethodInfo)",
+      "GetConstructor(System.Type,System.Reflection.ConstructorInfo)",
+      "GetField(System.Type,System.Reflection.FieldInfo)"
+    ],
+    "Aspect": "MemberTrim",
+    "Warn": "ToInvestigate - TypeBuilder - these are entry points to the type builder, unclear if this is unsafe or not",
+    "Category": "ToInvestigate-TypeBuilder"
+  },
+  {
+    // if the base type is itself a TypeBuilder instantiation, gets the parent generic type definition,
+    // instantiates it with the parameters of the parent (why can't it just use m_typeParent directly?)
+    // and does GetConstructor
+    // so generating code for a derived class at runtime, the parent type's ctor may need to be kept.
+    // what's the entry point?
+    // SetParent(Type? parent) public API. also called by an internal ctor.
+    // if we mark that as unsafe, then DefineDefaultConstructor could be safe.
+    // really, it's unsafe when using a base type that may have been linked away.
+    // there may be a way to do it that doesn't just prevent use of DefineDefaultConstructor.
+    // to keep this working, would need to ensure that base types for a TypeBuilder have ctors kept
+    // if DefineDefaultConstructor is called.
+    "Type": "System.Reflection.Emit.TypeBuilder",
+    "Methods": [
+      "DefineDefaultConstructor"
+    ],
+    "Aspect": "MemberTrim",
+    "Warn": "ToInvestigate - DefineDefaultConstructor - the base type's ctor needs to be kept in this case",
+    "Category": "ToInvestigate-DefineDefaultConstructor"
+  },
+
+  {
+    "Type": "System.Reflection.Metadata.AssemblyExtensions",
+    "Methods": [ "TryGetRawMetadata" ],
+    "Aspect": "TypeTrim",
+    "Warn": "Allows access to the raw metadata of an assembly - linker trimming will change the metadata, the impact of such change is possibly breaking to the caller",
+    "Category": "KnownReflection"
+  },
 
   {
     "Type": "-",

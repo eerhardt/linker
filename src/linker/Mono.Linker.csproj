@@ -54,6 +54,10 @@
       <Link>ReflectionApiTemporaryAnnotations.analysisconfig.jsonc</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Linker.Analysis\InteropServicesApis.analysisconfig.jsonc">
+      <Link>InteropServicesApis.analysisconfig.jsonc</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <!-- When publishing illink as a dependency of ILLink.Tasks, we want

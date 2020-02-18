@@ -80,9 +80,9 @@ namespace Mono.Linker.Analysis
 				var methods = e.Value;
 				Console.WriteLine (methods.Count + " methods are " + reason);
 			}
-			var allReasons = (InterestingReason [])Enum.GetValues (typeof (InterestingReason));
+			var allReasons = (InterestingReasonKind [])Enum.GetValues (typeof (InterestingReasonKind));
 			foreach (var reason in allReasons) {
-				if (reason == InterestingReason.None) {
+				if (reason == InterestingReasonKind.None) {
 					continue;
 				}
 				if (methodsPerCategory.ContainsKey (reason.ToString())) {
@@ -124,9 +124,9 @@ namespace Mono.Linker.Analysis
 				var sts = e.Value;
 				Console.WriteLine (sts.Count + " stacktraces are " + reason);
 			}
-			var allReasons = (InterestingReason [])Enum.GetValues (typeof (InterestingReason));
+			var allReasons = (InterestingReasonKind [])Enum.GetValues (typeof (InterestingReasonKind));
 			foreach (var reason in allReasons) {
-				if (reason == InterestingReason.None) {
+				if (reason == InterestingReasonKind.None) {
 					continue;
 				}
 				if (stacktracesPerCategory.ContainsKey (reason.ToString ())) {
@@ -248,7 +248,7 @@ namespace Mono.Linker.Analysis
 							Console.WriteLine ($"Overwriting annotation {existingAnnotation}");
 						}
 
-						Console.WriteLine ($"Adding implied annotation {warnAnnotation} to {overrideMethodDefinition} because it overrides annotated {methodDefinition}");
+						// Console.WriteLine ($"Adding implied annotation {warnAnnotation} to {overrideMethodDefinition} because it overrides annotated {methodDefinition}");
 						interestingReasons [overrideMethodIndex] = warnAnnotation;
 						intCallGraph.isInteresting [overrideMethodIndex] = true;
 

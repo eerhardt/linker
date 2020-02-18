@@ -4,7 +4,7 @@ using Mono.Cecil;
 
 namespace Mono.Linker.Analysis
 {
-	public enum InterestingReason
+	public enum InterestingReasonKind
 	{
 		None,
 		LinkerUnanalyzed,
@@ -162,6 +162,300 @@ namespace Mono.Linker.Analysis
 		LinkerShouldNotWarn,
 	}
 
+	public class InterestingReason
+	{
+		public CodeReadinessAspect Aspect { get; private set; }
+		public InterestingReasonKind Kind { get; private set; }
+		public string Message { get; private set; }
+
+		public InterestingReason (CodeReadinessAspect aspect, InterestingReasonKind kind, string message)
+		{
+			Aspect = aspect;
+			Kind = kind;
+			Message = message;
+		}
+
+		public static InterestingReason AnnotatedLinkerFriendly =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.AnnotatedLinkerFriendly, "Linker friendly");
+
+		public static InterestingReason LinkerShouldNotWarn =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.LinkerShouldNotWarn, "We think the linker should not warn in this case, but it does");
+
+
+		public static InterestingReason SerializationBigHammer =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.SerializationBigHammer, "Marks everything in serialization namespaces as potentially unsafe");
+
+		public static InterestingReason EventSourceBigHammer =
+			new InterestingReason (CodeReadinessAspect.MemberTrim, InterestingReasonKind.EventSourceBigHammer, "Marks everything around event sources as potentially unsafe - but only for member level trimming");
+
+
+		public static InterestingReason GetMethod =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.GetMethod, "GetMethod by name");
+		
+		public static InterestingReason GetConstructor =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.GetConstructor, "Requries ctor to be present on the type");
+
+
+		public static InterestingReason ResourceBinaryFormatter =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.ResourceBinaryFormatter, "???");
+
+		public static InterestingReason ReadingResources =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.ReadingResources, "reading resources has code to do deserialization. some reflection is used upfront even in the general case.");
+
+		public static InterestingReason LinqExpressionCompilation =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.LinqExpressionCompilation, "???");
+
+		public static InterestingReason LinqExpressionCallString =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.LinqExpressionCallString, "???");
+
+		public static InterestingReason LinqCompileReflection =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.LinqCompileReflection, "???");
+
+		public static InterestingReason LinqGetMethodWrapper =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.LinqGetMethodWrapper, "???");
+
+		public static InterestingReason LinqCheckMethod =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.LinqCheckMethod, "???");
+
+		public static InterestingReason LinqExpressionCallMaybeSafe =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.LinqExpressionCallMaybeSafe, "???");
+
+		public static InterestingReason LinqExpressionFieldString =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.LinqExpressionFieldString, "???");
+
+		public static InterestingReason LinqGetValue =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.LinqGetValue, "???");
+
+
+		public static InterestingReason DispatchProxy =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.DispatchProxy, "???");
+
+		public static InterestingReason XmlSerialization =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.XmlSerialization, "???");
+
+		public static InterestingReason XmlSchemaMapping =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.XmlSchemaMapping, "???");
+
+		public static InterestingReason XmlSerializationILGenSimple =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.XmlSerializationILGenSimple, "???");
+
+		public static InterestingReason XmlSerializationSourceInfoSimple =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.XmlSerializationSourceInfoSimple, "???");
+
+		public static InterestingReason XmlSerializationCodeGeneratorSimple =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.XmlSerializationCodeGeneratorSimple, "???");
+
+		public static InterestingReason XmlSerializationGetMethodFromType =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.XmlSerializationGetMethodFromType, "???");
+
+		public static InterestingReason GetEnumeratorElementType =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.GetEnumeratorElementType, "???");
+
+		public static InterestingReason XmlILGeneratorBakeMethodsReflection =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.XmlILGeneratorBakeMethodsReflection, "???");
+
+		public static InterestingReason XmlSerializationRequiresAddMethod =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.XmlSerializationRequiresAddMethod, "???");
+
+		public static InterestingReason XmlReflectionGetMethod =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.XmlReflectionGetMethod, "???");
+
+		public static InterestingReason XmlSerializationGetConstructorFlags =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.XmlSerializationGetConstructorFlags, "???");
+
+		public static InterestingReason XMLSchemaSetPropertiesGetType =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.XMLSchemaSetPropertiesGetType, "???");
+
+		public static InterestingReason XmlSoapImporterFieldModelReflection =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.XmlSoapImporterFieldModelReflection, "???");
+
+		public static InterestingReason XmlReflectionImporter =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.XmlReflectionImporter, "???");
+
+		public static InterestingReason XmlSerializationReaderCollectionAdd =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.XmlSerializationReaderCollectionAdd, "???");
+
+		public static InterestingReason XmlILGenGetCurrent =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.XmlILGenGetCurrent, "???");
+
+		public static InterestingReason XmlSerializationReaderGetMethod =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.XmlSerializationReaderGetMethod, "???");
+
+
+		public static InterestingReason XsltGetMethod =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.XsltGetMethod, "???");
+
+
+		public static InterestingReason ExportDefaultValue =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.ExportDefaultValue, "???");
+
+		public static InterestingReason CachedReflectionInfo =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.CachedReflectionInfo, "???");
+
+		public static InterestingReason ElementBoxStorage =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.ElementBoxStorage, "???");
+
+		public static InterestingReason LocalBoxStorage =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.LocalBoxStorage, "???");
+
+		public static InterestingReason TypeConverterConvertToSimple =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.TypeConverterConvertToSimple, "???");
+
+		public static InterestingReason ExpandoObjectSimple =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.ExpandoObjectSimple, "???");
+
+		public static InterestingReason CallSiteHelpersSimple =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.CallSiteHelpersSimple, "???");
+
+		public static InterestingReason DelegateHelpersStatics =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.DelegateHelpersStatics, "???");
+
+		public static InterestingReason TypeConverterConvertToComplex =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.TypeConverterConvertToComplex, "???");
+
+		public static InterestingReason GenerateRefEmitAssembly =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.GenerateRefEmitAssembly, "???");
+
+		public static InterestingReason ActivatorCacheSimple =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.ActivatorCacheSimple, "???");
+
+		public static InterestingReason EmitNewHoistedLocals =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.EmitNewHoistedLocals, "???");
+
+		public static InterestingReason DefaultValueAttribute =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.DefaultValueAttribute, "???");
+
+		public static InterestingReason ThreadPrincipal =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.ThreadPrincipal, "???");
+
+		public static InterestingReason EventSourceGetCustomAttributeHelperLooksSafe =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.EventSourceGetCustomAttributeHelperLooksSafe, "???");
+
+		public static InterestingReason ComponentActivator =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.ComponentActivator, "???");
+
+		public static InterestingReason ComponentModelAttributeRequiresCtor =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.ComponentModelAttributeRequiresCtor, "???");
+
+		public static InterestingReason ComponentModelAttributeRequiresDefaultField =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.ComponentModelAttributeRequiresDefaultField, "???");
+
+		public static InterestingReason ComponentModelFindMethod =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.ComponentModelFindMethod, "???");
+
+		public static InterestingReason ComponentModelAttributeRequiresType =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.ComponentModelAttributeRequiresType, "???");
+
+		public static InterestingReason ComponentModelBindingListRequiresCtor =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.ComponentModelBindingListRequiresCtor, "???");
+
+
+		public static InterestingReason CryptoConfig =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.CryptoConfig, "???");
+
+		public static InterestingReason CryptoConfigForwarderReflectionDependency =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.CryptoConfigForwarderReflectionDependency, "???");
+
+		public static InterestingReason CertificateDownloader =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.CertificateDownloader, "???");
+
+
+		public static InterestingReason DataColumnGetsNullPropertyOfType =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.DataColumnGetsNullPropertyOfType, "???");
+
+		public static InterestingReason DbProviderType =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.DbProviderType, "???");
+
+		public static InterestingReason ResourceTypeReflection =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.ResourceTypeReflection, "???");
+
+		public static InterestingReason ComponentValidatorReflection =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.ComponentValidatorReflection, "???");
+
+		public static InterestingReason JsonConverterAttributeRequiresCtor =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.JsonConverterAttributeRequiresCtor, "???");
+
+		public static InterestingReason EarlyBoundInfoRequiresCtor =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.EarlyBoundInfoRequiresCtor, "???");
+
+
+		public static InterestingReason AttributeParentReflection =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.AttributeParentReflection, "???");
+
+		public static InterestingReason AttributeNamedParamReflection =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.AttributeNamedParamReflection, "???");
+
+
+		public static InterestingReason SourceInfo =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.SourceInfo, "???");
+
+
+		public static InterestingReason IDOBinderReflection =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.IDOBinderReflection, "???");
+
+
+		public static InterestingReason CallSiteBinderSimple =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.CallSiteBinderSimple, "???");
+
+		public static InterestingReason CallSiteSimple =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.CallSiteSimple, "???");
+
+
+		public static InterestingReason DeserializeDataTableGetType =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.DeserializeDataTableGetType, "???");
+
+		public static InterestingReason SqlUdtStorageStaticNull =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.SqlUdtStorageStaticNull, "???");
+
+		public static InterestingReason DataStorageGetType =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.DataStorageGetType, "???");
+
+		public static InterestingReason RuntimeBinderReflection =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.RuntimeBinderReflection, "???");
+
+		public static InterestingReason RuntimeBinderReflectionSafe =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.RuntimeBinderReflectionSafe, "???");
+
+
+		public static InterestingReason CodeGeneratorStatic =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.CodeGeneratorStatic, "???");
+
+		public static InterestingReason CodeGeneratorGettersSimple =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.CodeGeneratorGettersSimple, "???");
+
+		public static InterestingReason DeserializationValueTypeFixup =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.DeserializationValueTypeFixup, "???");
+
+		public static InterestingReason CollectionDataContractRequiresAddMethodMaybeOk =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.CollectionDataContractRequiresAddMethodMaybeOk, "???");
+
+		public static InterestingReason DataContractSerializationReflection =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.DataContractSerializationReflection, "???");
+
+		public static InterestingReason DataContractExporterCodeGenReflection =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.DataContractExporterCodeGenReflection, "???");
+
+		public static InterestingReason DataContractSimple =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.DataContractSimple, "???");
+
+		public static InterestingReason JsonFormatGeneratorStatics =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.JsonFormatGeneratorStatics, "???");
+
+		public static InterestingReason XmlFormatGeneratorStatics =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.XmlFormatGeneratorStatics, "???");
+
+		public static InterestingReason XmlSchemaProviderAttributeMethodName =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.XmlSchemaProviderAttributeMethodName, "???");
+
+		public static InterestingReason XmlFormatReaderGeneratorSafe =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.XmlFormatReaderGeneratorSafe, "???");
+
+		public static InterestingReason XmlFormatReaderGeneratorMaybeSafe =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.XmlFormatReaderGeneratorMaybeSafe, "???");
+
+		public static InterestingReason BinaryFormatterGetType =
+			new InterestingReason (CodeReadinessAspect.TypeTrim, InterestingReasonKind.BinaryFormatterGetType, "???");
+	}
 
 	public class ApiFilter
 	{
@@ -212,7 +506,7 @@ namespace Mono.Linker.Analysis
 					TypeFullName = method.DeclaringType.FullName,
 					MethodNames = new string [] { method.Name },
 					Aspect = CodeReadinessAspect.None,
-					Category = nameof(InterestingReason.LinkerUnanalyzed),
+					Category = nameof(InterestingReasonKind.LinkerUnanalyzed),
 					UnanalyzedReflectionCalls = records
 				};
 			}
@@ -227,18 +521,18 @@ namespace Mono.Linker.Analysis
 				return new SuppressApiAnnotation () {
 					TypeFullName = method.DeclaringType.FullName,
 					MethodNames = new string [] { method.Name },
-					Aspect = CodeReadinessAspect.None,
-					Category = reason.ToString (),
-					Reason = reason.ToString ()
+					Aspect = reason.Aspect,
+					Category = reason.Kind.ToString (),
+					Reason = reason.Message
 				};
 			}
-			else if (reason != InterestingReason.None) {
+			else if (reason != null) {
 				return new WarnApiAnnotation () {
 					TypeFullName = method.DeclaringType.FullName,
 					MethodNames = new string [] { method.Name },
-					Aspect = CodeReadinessAspect.None,
-					Category = reason.ToString (),
-					Message = reason.ToString ()
+					Aspect = reason.Aspect,
+					Category = reason.Kind.ToString (),
+					Message = reason.Message
 				};
 			}
 
@@ -307,7 +601,7 @@ namespace Mono.Linker.Analysis
 					return InterestingReason.XmlSchemaMapping;
 				}
 			}
-			return InterestingReason.None;
+			return null;
 		}
 
 		// a few of the "reasons" are given special semantics wrt LinkerUnanalyzed:
@@ -317,16 +611,16 @@ namespace Mono.Linker.Analysis
 		// LinkerUnanalyzed in the output.
 		bool IsBigHammer (InterestingReason reason)
 		{
-			return (reason == InterestingReason.EventSourceBigHammer ||
-					reason == InterestingReason.SerializationBigHammer ||
-					reason == InterestingReason.KnownReflection ||
-					reason == InterestingReason.ToInvestigate);
+			return (reason.Kind == InterestingReasonKind.EventSourceBigHammer ||
+					reason.Kind == InterestingReasonKind.SerializationBigHammer ||
+					reason.Kind == InterestingReasonKind.KnownReflection ||
+					reason.Kind == InterestingReasonKind.ToInvestigate);
 		}
 
 		InterestingReason GetInterestingReasonFromAnnotation (MethodDefinition method)
 		{
 			var reason = GetInterestingReasonFromAnnotationToInvestigate (method);
-			if (reason != InterestingReason.None) {
+			if (reason != null) {
 				return reason;
 			}
 
@@ -476,14 +770,6 @@ namespace Mono.Linker.Analysis
 					return InterestingReason.XmlSerializationCodeGeneratorSimple;
 				}
 			}
-
-			// 11. json serialization statics. moved to reflectionapis
-
-			// 12. serialization moved to reflectionapis
-
-			// 13. serialization moved to reflectionapis
-
-			// after the above (minus some more recently added XmlFormatGeneratorStatics), we get 1223 stacktraces, 1093 still LinkerUnanalyzed
 
 			// 14. ExpandoTryDeleteValue does ExpandoObject cctor, which does GetMethod(string)
 			// this method is obsolete, and we could just mark it unsafe.
@@ -1243,6 +1529,10 @@ namespace Mono.Linker.Analysis
 			}
 
 			// 88. serialization moved
+			InterestingReason r = GetSerializationReason (method);
+			if (r != null) {
+				return r;
+			}
 
 			// 89. xsl transform uses XmlILGenerator. iterator descriptor PushValue does GetMethod("get_Current")
 			if (method.DeclaringType.FullName == "System.Xml.Xsl.IlGen.IteratorDescriptor") {
@@ -1334,7 +1624,176 @@ namespace Mono.Linker.Analysis
 			// if (IsLinkerUnanalyzedReflectionMethod(method)) {
 			//     return InterestingReason.LinkerUnanalyzed;
 			// }
-			return InterestingReason.None;
+			return null;
+		}
+
+		private InterestingReason GetSerializationReason(MethodDefinition method)
+		{
+			if (method.DeclaringType.FullName.StartsWith ("System.Runtime.Serialization")) {
+				// json serialization I guess? JsonFormatGeneratorStatigs::get_ExtensionDataProperty ends in GetProperty
+				// should be detectable. they do things like typeof(ConcreteType).GetMethod("string")
+				if (method.DeclaringType.FullName == "System.Runtime.Serialization.JsonFormatGeneratorStatics") {
+					if (method.Name == "get_ExtensionDataProperty" ||
+						method.Name == "get_GetCurrentMethod" ||
+						method.Name == "get_TypeHandleProperty" ||
+						method.Name == "get_MoveNextMethod" ||
+						method.Name == "get_OnDeserializationMethod" ||
+						method.Name == "get_SerializationExceptionCtor" || // this one does typeof(ConcreteType).GetConstructor()
+						method.Name == "get_ExtensionDataObjectCtor") {
+						return InterestingReason.JsonFormatGeneratorStatics;
+					}
+				}
+
+				// XsdDataContractExporter::Export does datacontract stuff, ends up Serialization, createXmlFormatWriterDelegate
+				// GenerateClassWriter, eventually end up in serialization CodeGenerator::.ctor, .cctor, which does GetProperty
+				// CodeGenerator in System.Runtime.Serialization (in System.Private.DataContractSerialization)
+				// does static property typeof(string).GetProperty("Length").GetMethod
+				// should be afe.
+				// but the static cctor does more things that look to be less safe.
+				if (method.DeclaringType.FullName == "System.Runtime.Serialization.CodeGenerator") {
+					if (method.Name == ".cctor") {
+						return InterestingReason.CodeGeneratorStatic;
+					}
+					// needs investigation. some of the statics look like typeof(ConcreteType).GetMethod("string")
+					// some have getters that take the type from elsewhere. I think the cctor itself is safe, and the getters are their own methods.
+				}
+
+				// similar to json, XmlFormatGeneratorStatics also have getters that would probably be detectable easily.
+				if (method.DeclaringType.FullName == "System.Runtime.Serialization.XmlFormatGeneratorStatics") {
+					if (method.Name == "get_ExtensionDataProperty" ||
+						method.Name == "get_ExtensionDataSetExplicitMethodInfo" ||
+						method.Name == "get_OnDeserializationMethod" ||
+						// some of these use GetConstructor, taking binding flags that may need to be taken into account:
+						// typeof(ExtensionDataObject).GetConstructor(Globals.ScanAllMembers, null, Array.Empty<Type>(), null));
+						method.Name == "get_ExtensionDataObjectCtor" ||
+						method.Name == "get_ExtensionDataSetExplicitMethodInfo" ||
+						method.Name == "get_ExtensionDataProperty") {
+						return InterestingReason.XmlFormatGeneratorStatics;
+					}
+				}
+
+				// DataContractSet uses XmlFormatReaderGenerator, which does codegen.
+				// trying to generate a load, (ldc(object)), it uses the static that points to Type.GetTypeFromHandle,
+				// obtained using reflection. detectable. s_getTypeFromHandle = typeof(Type).GetMethod("GetTypeFromHandle");
+				if (method.DeclaringType.FullName == "System.Runtime.Serialization.CodeGenerator") {
+					if (method.Name == "get_GetTypeFromHandle" ||
+						method.Name == "get_ObjectEquals") {
+						return InterestingReason.CodeGeneratorGettersSimple;
+					}
+				}
+
+				// serialization objectmanager DoValueTypeFixup tries to set value into a field of an object in a holder
+				// look at parent for some field... if it's nullable, do GetField(nameof(value)). don't understand this.
+				// I guess when deserializing an object graph, need to read in, build graph, then fix up pointers
+				// objectholder has fixups. when fixing a pointer to boxed valuetype, DoValueTypeFixup does this.
+				// GetField(nameof(value)) of the parent field's FieldType. I guess this is the field of a boxed valuetype?
+				// for the nullable case. don't fully understand this.
+				if (method.DeclaringType.FullName == "System.Runtime.Serialization.ObjectManager") {
+					if (method.Name == "DoValueTypeFixup") {
+						return InterestingReason.DeserializationValueTypeFixup;
+					}
+				}
+
+				// xsd data contract schema exporter calls InvokeSchemaProviderMethod. this takes in a Type, does GetMethod(methodName)
+				// methodName comes from XmlSchemaProviderAttribute on the type. would need to preserve MethodName.
+				if (method.DeclaringType.FullName == "System.Runtime.Serialization.SchemaExporter") {
+					if (method.Name == "InvokeSchemaProviderMethod") {
+						return InterestingReason.XmlSchemaProviderAttributeMethodName;
+					}
+				}
+
+				// exporting collection data contract, IsCollectionOrTryCreate
+				// receives an itemType. gets its basetype, checks things, does GetConstructor, does MakeGenericType.GetMethod, etc...
+				// BaseType is ok. globals TypeOf is ok.
+				// GetGenericTypeDefinition is ok.
+				// TypeOfKeyValue, etc... MakeGenericType is ok.
+				// type.GetGenericArguments is ok.
+				// does ICollection<T>... GetMethod(Globals.AddMethodName);
+				// might be ok? unclear
+				if (method.DeclaringType.FullName == "System.Runtime.Serialization.CollectionDataContract") {
+					if (method.Name == "IsCollectionOrTryCreate") {
+						return InterestingReason.CollectionDataContractRequiresAddMethodMaybeOk;
+					}
+				}
+
+				// binaryformatter deserialize objectreader GetType wraps Type.GetType, calling into GetSimplyNamedTypeFromAssembly
+				if (method.DeclaringType.FullName == "System.Runtime.Serialization.Formatters.Binary.ObjectReader") {
+					if (method.Name == "GetSimplyNamedTypeFromAssembly") {
+						return InterestingReason.BinaryFormatterGetType;
+					}
+				}
+
+				// data contract serialization classdatacontract helper ctor does SetKeyValuePairAdapterFlags
+				// which takes a type, and does GetMethod("GetKeyValuePair")
+				if (method.DeclaringType.FullName == "System.Runtime.Serialization.ClassDataContract/ClassDataContractCriticalHelper") {
+					if (method.Name == "SetKeyValuePairAdapterFlags") {
+						return InterestingReason.DataContractSerializationReflection;
+					}
+				}
+
+				// data contract exporter does xml serialization codegen BeginMethod
+				if (method.DeclaringType.FullName == "System.Runtime.Serialization.CodeGenerator") {
+					if (method.Name == "BeginMethod") {
+						return InterestingReason.DataContractExporterCodeGenReflection;
+					}
+				}
+
+				// exporting data contract uses XmlFormatReaderGenerator CriticalHelper, CreateObject
+				if (method.DeclaringType.FullName == "System.Runtime.Serialization.XmlFormatReaderGenerator/CriticalHelper") {
+					if (method.Name == "CreateObject") {
+						return InterestingReason.XmlFormatReaderGeneratorSafe;
+					}
+				}
+
+				// exporting datacontract, xmlformatreadergenerator helper does GetISerializableConstructor
+				// does UnderlyingType.GetConstructor(Globals.ScanAllMembers
+				if (method.DeclaringType.FullName == "System.Runtime.Serialization.ClassDataContract/ClassDataContractCriticalHelper") {
+					if (method.Name == "GetISerializableConstructor") {
+						return InterestingReason.DataContractSerializationReflection;
+					}
+				}
+
+				// data contract helper uses understandable simple pattern to cache a method.
+				if (method.DeclaringType.FullName == "System.Runtime.Serialization.PrimitiveDataContract") {
+					if (method.Name == "get_XmlFormatReaderMethod") {
+						return InterestingReason.DataContractSimple;
+					}
+				}
+
+				// data contract serialization uses XmlFormatReaderGenerator, to wrap nullable object
+				// does GetConstructor()). may be safe? if Nullable<T>::.ctor(T) is kept:
+				// it does Globals.TypeOfNullable.MakeGenericType(innerType).GetConstructor(innerType)
+				// where innertype is retrieved from parameter
+				if (method.DeclaringType.FullName == "System.Runtime.Serialization.XmlFormatReaderGenerator/CriticalHelper") {
+					if (method.Name == "WrapNullableObject") {
+						return InterestingReason.XmlFormatReaderGeneratorMaybeSafe;
+					}
+				}
+
+				if (method.DeclaringType.FullName == "System.Runtime.Serialization.SerializationException" ||
+					method.DeclaringType.FullName == "System.Runtime.Serialization.DeserializationTracker" ||
+					method.DeclaringType.FullName == "System.Runtime.Serialization.StreamingContext" ||
+					method.DeclaringType.FullName == "System.Runtime.Serialization.SerializationInfoEnumerator" ||
+					method.DeclaringType.FullName == "System.Runtime.Serialization.SerializationEntry") {
+					// These types are perfectly safe
+					return null;
+				}
+
+				if (method.DeclaringType.FullName == "System.Runtime.Serialization.SerializationInfo") {
+					switch (method.Name) {
+						case "get_AsyncDeserializationInProgress":
+						case "get_DeserializationInProgress":
+						case "ThrowIfDeserializationInProgress":
+						case "StartDeserialization":
+							// All of these are static and have no linker impact
+							return null;
+					}
+				}
+
+				return InterestingReason.SerializationBigHammer;
+			}
+
+			return null;
 		}
 
 		// an "interesting" method will be an endpoint in the analysis.
@@ -1357,7 +1816,6 @@ namespace Mono.Linker.Analysis
 
 		InterestingReason GetInterestingReason (MethodDefinition method)
 		{
-
 			// there are a few cases:
 			// no reflection dependencies
 			//   nothing needs to be done. :)
@@ -1392,7 +1850,7 @@ namespace Mono.Linker.Analysis
 			//   before trying to look at everything that we have marked to investigate
 
 
-			var retReason = InterestingReason.None;
+			InterestingReason retReason = null;
 
 			//
 			// 1. first, check for any annotations we've explicitly added
@@ -1400,9 +1858,9 @@ namespace Mono.Linker.Analysis
 			//
 
 			var annotationReason = GetInterestingReasonFromAnnotation (method);
-			if (annotationReason != InterestingReason.None && !IsBigHammer (annotationReason)) {
+			if (annotationReason != null && !IsBigHammer (annotationReason)) {
 				RecordReason (method, annotationReason);
-				if (retReason != InterestingReason.None) {
+				if (retReason != null) {
 					throw new Exception ("already gave reason for " + method);
 				}
 				retReason = annotationReason;
@@ -1411,9 +1869,9 @@ namespace Mono.Linker.Analysis
 			// ToInvestigate and KnownReflection are saved for later...
 			// LinkerUnanalyzed takes precedence over these and a few others
 			var reflectionApiReason = ReflectionApis.GetInterestingReasonForReflectionApi (method);
-			if (reflectionApiReason != InterestingReason.None && !IsBigHammer (reflectionApiReason)) {
+			if (reflectionApiReason != null && !IsBigHammer (reflectionApiReason)) {
 				RecordReason (method, reflectionApiReason);
-				if (retReason != InterestingReason.None) {
+				if (retReason != null) {
 					throw new Exception ("already gave reason for " + method);
 				}
 				retReason = reflectionApiReason;
@@ -1439,21 +1897,21 @@ namespace Mono.Linker.Analysis
 			// as a special case. this is temporary - eventually all attributes should take priority over LinkerUnanalyzed.
 			//
 
-			InterestingReason bigHammerReason = InterestingReason.None;
-			if (annotationReason != InterestingReason.None && IsBigHammer (annotationReason)) {
+			InterestingReason bigHammerReason = null;
+			if (annotationReason != null && IsBigHammer (annotationReason)) {
 				bigHammerReason = annotationReason;
 			}
-			if (reflectionApiReason != InterestingReason.None && IsBigHammer (reflectionApiReason)) {
-				if (bigHammerReason != InterestingReason.None) {
+			if (reflectionApiReason != null && IsBigHammer (reflectionApiReason)) {
+				if (bigHammerReason != null) {
 					throw new Exception ("duplicate");
 				}
 				bigHammerReason = reflectionApiReason;
 			}
-			if (bigHammerReason != InterestingReason.None) {
+			if (bigHammerReason != null) {
 				RecordReason (method, bigHammerReason);
-				if (retReason == InterestingReason.LinkerUnanalyzed) {
+				if (retReason != null && retReason.Kind == InterestingReasonKind.LinkerUnanalyzed) {
 					Console.WriteLine (method + " is LinkerUnanalyzed, also " + reflectionApiReason);
-				} else if (retReason != InterestingReason.None) {
+				} else if (retReason != null) {
 					throw new Exception ("already gave reason for " + method + " (was " + retReason + ")");
 				} else {
 					retReason = bigHammerReason;

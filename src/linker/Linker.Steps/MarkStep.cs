@@ -2436,14 +2436,18 @@ namespace Mono.Linker.Steps {
 				}
 			}
 
-			public void RecordUnrecognizedPattern (string message)
+			public void RecordUnrecognizedMemberAccessPattern (string message) => RecordUnrecognizedPattern (CodeReadinessAspect.MemberTrim, message);
+			public void RecordUnrecognizedTypeAccessPattern (string message) => RecordUnrecognizedPattern (CodeReadinessAspect.TypeTrim, message);
+			public void RecordUnrecognizedAssemblyAccessPattern (string message) => RecordUnrecognizedPattern (CodeReadinessAspect.AssemblyTrim, message);
+
+			public void RecordUnrecognizedPattern (CodeReadinessAspect aspect, string message)
 			{
 #if DEBUG
 				Debug.Assert (_patternAnalysisAttempted, "To correctly report all patterns, when starting to analyze a pattern the AnalyzingPattern must be called first.");
 				_patternReported = true;
 #endif
 
-				_context.ReflectionPatternRecorder.UnrecognizedReflectionAccessPattern (MethodCalling, MethodCalled, message);
+				_context.ReflectionPatternRecorder.UnrecognizedReflectionAccessPattern (MethodCalling, MethodCalled, aspect, message);
 			}
 
 			public void Dispose ()
@@ -2569,7 +2573,7 @@ namespace Mono.Linker.Steps {
 									
 									var first_arg_instr = GetInstructionAtStackDepth (_instructions, instructionIndex - 1, methodCalled.Parameters.Count);
 									if (first_arg_instr < 0) {
-										reflectionContext.RecordUnrecognizedPattern ($"Reflection call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' couldn't be decomposed");
+										reflectionContext.RecordUnrecognizedTypeAccessPattern ($"Reflection call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' couldn't be decomposed");
 										break;
 									}
 
@@ -2578,14 +2582,14 @@ namespace Mono.Linker.Steps {
 									//
 									var first_arg = _instructions [first_arg_instr];
 									if (first_arg.OpCode != OpCodes.Ldstr) {
-										reflectionContext.RecordUnrecognizedPattern ($"Reflection call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' was detected with argument which cannot be analyzed");
+										reflectionContext.RecordUnrecognizedTypeAccessPattern ($"Reflection call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' was detected with argument which cannot be analyzed");
 										break;
 									}
 
 									string typeName = (string)first_arg.Operand;
 									TypeDefinition foundType = _markStep.ResolveFullyQualifiedTypeName (typeName);
 									if (foundType == null) {
-										reflectionContext.RecordUnrecognizedPattern ($"Reflection call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' was detected with type name `{typeName}` which can't be resolved.");
+										reflectionContext.RecordUnrecognizedTypeAccessPattern ($"Reflection call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' was detected with type name `{typeName}` which can't be resolved.");
 										break;
 									}
 
@@ -2616,7 +2620,7 @@ namespace Mono.Linker.Steps {
 
 									var first_arg_instr = GetInstructionAtStackDepth (_instructions, instructionIndex - 1, 4);
 									if (first_arg_instr < 0) {
-										reflectionContext.RecordUnrecognizedPattern ($"Expression call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' couldn't be decomposed");
+										reflectionContext.RecordUnrecognizedMemberAccessPattern ($"Expression call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' couldn't be decomposed");
 										break;
 									}
 
@@ -2626,14 +2630,14 @@ namespace Mono.Linker.Steps {
 
 									declaringType = FindReflectionTypeForLookup (_instructions, first_arg_instr);
 									if (declaringType == null) {
-										reflectionContext.RecordUnrecognizedPattern ($"Expression call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' was detected with 1st argument which cannot be analyzed");
+										reflectionContext.RecordUnrecognizedMemberAccessPattern ($"Expression call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' was detected with 1st argument which cannot be analyzed");
 										break;
 									}
 
 									var second_arg_instr = GetInstructionAtStackDepth (_instructions, instructionIndex - 1, 3);
 									second_argument = _instructions [second_arg_instr];
 									if (second_argument.OpCode != OpCodes.Ldstr) {
-										reflectionContext.RecordUnrecognizedPattern ($"Expression call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' was detected with 2nd argument which cannot be analyzed");
+										reflectionContext.RecordUnrecognizedMemberAccessPattern ($"Expression call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' was detected with 2nd argument which cannot be analyzed");
 										break;
 									}
 
@@ -2654,7 +2658,7 @@ namespace Mono.Linker.Steps {
 
 									var second_arg_instr = GetInstructionAtStackDepth (_instructions, instructionIndex - 1, 2);
 									if (second_arg_instr < 0) {
-										reflectionContext.RecordUnrecognizedPattern ($"Expression call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' couldn't be decomposed");
+										reflectionContext.RecordUnrecognizedMemberAccessPattern ($"Expression call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' couldn't be decomposed");
 										break;
 									}
 
@@ -2664,14 +2668,14 @@ namespace Mono.Linker.Steps {
 
 									declaringType = FindReflectionTypeForLookup (_instructions, second_arg_instr);
 									if (declaringType == null) {
-										reflectionContext.RecordUnrecognizedPattern ($"Expression call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' was detected with 2nd argument which cannot be analyzed");
+										reflectionContext.RecordUnrecognizedMemberAccessPattern ($"Expression call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' was detected with 2nd argument which cannot be analyzed");
 										break;
 									}
 
 									var third_arg_inst = GetInstructionAtStackDepth (_instructions, instructionIndex - 1, 1);
 									var third_argument = _instructions [third_arg_inst];
 									if (third_argument.OpCode != OpCodes.Ldstr) {
-										reflectionContext.RecordUnrecognizedPattern ($"Expression call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' was detected with the 3rd argument which cannot be analyzed");
+										reflectionContext.RecordUnrecognizedMemberAccessPattern ($"Expression call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' was detected with the 3rd argument which cannot be analyzed");
 										break;
 									}
 
@@ -2706,7 +2710,7 @@ namespace Mono.Linker.Steps {
 
 									var first_arg_instr = GetInstructionAtStackDepth (_instructions, instructionIndex - 1, 1);
 									if (first_arg_instr < 0) {
-										reflectionContext.RecordUnrecognizedPattern ($"Expression call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' couldn't be decomposed");
+										reflectionContext.RecordUnrecognizedMemberAccessPattern ($"Expression call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' couldn't be decomposed");
 										break;
 									}
 
@@ -2716,7 +2720,7 @@ namespace Mono.Linker.Steps {
 
 									declaringType = FindReflectionTypeForLookup (_instructions, first_arg_instr);
 									if (declaringType == null) {
-										reflectionContext.RecordUnrecognizedPattern ($"Expression call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' was detected with 1st argument which cannot be analyzed");
+										reflectionContext.RecordUnrecognizedMemberAccessPattern ($"Expression call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' was detected with 1st argument which cannot be analyzed");
 										break;
 									}
 
@@ -2809,7 +2813,7 @@ namespace Mono.Linker.Steps {
 							// TODO: This could be supported for `this` only calls
 							//
 							reflectionContext.AnalyzingPattern ();
-							reflectionContext.RecordUnrecognizedPattern ($"Activator call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' is not yet supported");
+							reflectionContext.RecordUnrecognizedTypeAccessPattern ($"Activator call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' is not yet supported");
 							break;
 						}
 
@@ -2829,7 +2833,7 @@ namespace Mono.Linker.Steps {
 							case "CreateInstance" when methodCalled.ContainsGenericParameter:
 								// Not sure it's worth implementing as we cannot expant T and simple cases can be rewritten
 								reflectionContext.AnalyzingPattern ();
-								reflectionContext.RecordUnrecognizedPattern ($"Activator call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' is not supported");
+								reflectionContext.RecordUnrecognizedMemberAccessPattern ($"Activator call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' is not supported");
 								break;
 
 							//
@@ -2856,16 +2860,18 @@ namespace Mono.Linker.Steps {
 										break;
 									}
 
+									// This branch is for CreateInstance(Type, ...), so the type must exist already
+									// thus the unsafeness can come only from the fact that the type is not marked as instantiated (and potentially lacks ctors)
 									var first_arg_instr = GetInstructionAtStackDepth (_instructions, instructionIndex - 1, methodCalled.Parameters.Count);
 									if (first_arg_instr < 0) {
-										reflectionContext.RecordUnrecognizedPattern ($"Activator call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' couldn't be decomposed");
+										reflectionContext.RecordUnrecognizedMemberAccessPattern ($"Activator call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' couldn't be decomposed");
 										break;
 									}
 
 									if (parameters [0].ParameterType.IsTypeOf ("System", "Type")) {
 										declaringType = FindReflectionTypeForLookup (_instructions, first_arg_instr + 1);
 										if (declaringType == null) {
-											reflectionContext.RecordUnrecognizedPattern ($"Activator call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' was detected with 1st argument expression which cannot be analyzed");
+											reflectionContext.RecordUnrecognizedMemberAccessPattern ($"Activator call '{methodCalled.FullName}' inside '{_methodCalling.FullName}' was detected with 1st argument expression which cannot be analyzed");
 											break;
 										}
 
@@ -2922,42 +2928,42 @@ namespace Mono.Linker.Steps {
 
 				var parameters = reflectionContext.MethodCalled.Parameters;
 				if (parameters.Count < 2) {
-					reflectionContext.RecordUnrecognizedPattern ($"Activator call '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' is not supported");
+					reflectionContext.RecordUnrecognizedAssemblyAccessPattern ($"Activator call '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' is not supported");
 					return;
 				}
 
 				if (parameters [0].ParameterType.MetadataType != MetadataType.String && parameters [1].ParameterType.MetadataType != MetadataType.String) {
-					reflectionContext.RecordUnrecognizedPattern ($"Activator call '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' is not supported");
+					reflectionContext.RecordUnrecognizedAssemblyAccessPattern ($"Activator call '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' is not supported");
 					return;
 				}
 
 				var first_arg_instr = GetInstructionAtStackDepth (_instructions, startIndex, reflectionContext.MethodCalled.Parameters.Count);
 				if (first_arg_instr < 0) {
-					reflectionContext.RecordUnrecognizedPattern ($"Activator call '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' couldn't be decomposed");
+					reflectionContext.RecordUnrecognizedAssemblyAccessPattern ($"Activator call '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' couldn't be decomposed");
 					return;
 				}
 
 				var first_arg = _instructions [first_arg_instr];
 				if (first_arg.OpCode != OpCodes.Ldstr) {
-					reflectionContext.RecordUnrecognizedPattern ($"Activator call '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' was detected with the 1st argument which cannot be analyzed");
+					reflectionContext.RecordUnrecognizedAssemblyAccessPattern ($"Activator call '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' was detected with the 1st argument which cannot be analyzed");
 					return;
 				}
 
 				var second_arg_instr = GetInstructionAtStackDepth (_instructions, startIndex, reflectionContext.MethodCalled.Parameters.Count - 1);
 				if (second_arg_instr < 0) {
-					reflectionContext.RecordUnrecognizedPattern ($"Activator call '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' couldn't be decomposed");
+					reflectionContext.RecordUnrecognizedAssemblyAccessPattern ($"Activator call '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' couldn't be decomposed");
 					return;
 				}
 
 				var second_arg = _instructions [second_arg_instr];
 				if (second_arg.OpCode != OpCodes.Ldstr) {
-					reflectionContext.RecordUnrecognizedPattern ($"Activator call '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' was detected with the 2nd argument which cannot be analyzed");
+					reflectionContext.RecordUnrecognizedAssemblyAccessPattern ($"Activator call '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' was detected with the 2nd argument which cannot be analyzed");
 					return;
 				}
 
 				string assembly_name = (string)first_arg.Operand;
 				if (!_markStep._context.Resolver.AssemblyCache.TryGetValue (assembly_name, out var assembly)) {
-					reflectionContext.RecordUnrecognizedPattern ($"Activator call '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' references assembly '{assembly_name}' which could not be found");
+					reflectionContext.RecordUnrecognizedAssemblyAccessPattern ($"Activator call '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' references assembly '{assembly_name}' which could not be found");
 					return;
 				}
 
@@ -2965,7 +2971,7 @@ namespace Mono.Linker.Steps {
 				var declaringType = FindType (assembly, type_name);
 
 				if (declaringType == null) {
-					reflectionContext.RecordUnrecognizedPattern ($"Activator call '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' references type '{type_name}' which could not be found");
+					reflectionContext.RecordUnrecognizedAssemblyAccessPattern ($"Activator call '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' references type '{type_name}' which could not be found");
 					return;
 				}
 
@@ -2985,7 +2991,7 @@ namespace Mono.Linker.Steps {
 
 				var first_arg_instr = GetInstructionAtStackDepth (_instructions, startIndex, first_instance_arg);
 				if (first_arg_instr < 0) {
-					reflectionContext.RecordUnrecognizedPattern ($"Reflection call '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' couldn't be decomposed");
+					reflectionContext.RecordUnrecognizedMemberAccessPattern ($"Reflection call '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' couldn't be decomposed");
 					return;
 				}
 
@@ -3002,7 +3008,7 @@ namespace Mono.Linker.Steps {
 					// The next value must be string constant (we don't handle anything else)
 					//
 					if (first_arg.OpCode != OpCodes.Ldstr) {
-						reflectionContext.RecordUnrecognizedPattern ($"Reflection call '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' was detected with argument which cannot be analyzed");
+						reflectionContext.RecordUnrecognizedMemberAccessPattern ($"Reflection call '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' was detected with argument which cannot be analyzed");
 						return;
 					}
 
@@ -3016,7 +3022,7 @@ namespace Mono.Linker.Steps {
 
 				var declaringType = FindReflectionTypeForLookup (_instructions, first_arg_instr - 1);
 				if (declaringType == null) {
-					reflectionContext.RecordUnrecognizedPattern ($"Reflection call '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' does not use detectable instance type extraction");
+					reflectionContext.RecordUnrecognizedMemberAccessPattern ($"Reflection call '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' does not use detectable instance type extraction");
 					return;
 				}
 
@@ -3038,7 +3044,7 @@ namespace Mono.Linker.Steps {
 						break;
 					default:
 						Debug.Fail ("Unsupported member type");
-						reflectionContext.RecordUnrecognizedPattern ($"Reflection call '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' is of unexpected member type.");
+						reflectionContext.RecordUnrecognizedMemberAccessPattern ($"Reflection call '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' is of unexpected member type.");
 						break;
 				}
 			}
@@ -3077,7 +3083,7 @@ namespace Mono.Linker.Steps {
 				}
 
 				if (!foundMatch)
-					reflectionContext.RecordUnrecognizedPattern ($"Reflection call '{reflectionContext.MethodCalled.FullName}' inside '{reflectionContext.MethodCalling.FullName}' could not resolve method `{name}` on type `{declaringType.FullName}`.");
+					reflectionContext.RecordUnrecognizedMemberAccessPattern ($"Reflection call '{reflectionContext.MethodCalled.FullName}' inside '{reflectionContext.MethodCalling.FullName}' could not resolve method `{name}` on type `{declaringType.FullName}`.");
 			}
 
 			void MarkPropertiesFromReflectionCall (ref ReflectionPatternContext reflectionContext, TypeDefinition declaringType, string name, bool staticOnly = false)
@@ -3110,7 +3116,7 @@ namespace Mono.Linker.Steps {
 				}
 
 				if (!foundMatch)
-					reflectionContext.RecordUnrecognizedPattern ($"Reflection call '{reflectionContext.MethodCalled.FullName}' inside '{reflectionContext.MethodCalling.FullName}' could not resolve property `{name}` on type `{declaringType.FullName}`.");
+					reflectionContext.RecordUnrecognizedMemberAccessPattern ($"Reflection call '{reflectionContext.MethodCalled.FullName}' inside '{reflectionContext.MethodCalling.FullName}' could not resolve property `{name}` on type `{declaringType.FullName}`.");
 			}
 
 			void MarkFieldsFromReflectionCall (ref ReflectionPatternContext reflectionContext, TypeDefinition declaringType, string name, bool staticOnly = false)
@@ -3129,7 +3135,7 @@ namespace Mono.Linker.Steps {
 				}
 
 				if (!foundMatch)
-					reflectionContext.RecordUnrecognizedPattern ($"Reflection call '{reflectionContext.MethodCalled.FullName}' inside '{reflectionContext.MethodCalling.FullName}' could not resolve field `{name}` on type `{declaringType.FullName}`.");
+					reflectionContext.RecordUnrecognizedMemberAccessPattern ($"Reflection call '{reflectionContext.MethodCalled.FullName}' inside '{reflectionContext.MethodCalling.FullName}' could not resolve field `{name}` on type `{declaringType.FullName}`.");
 			}
 
 			void MarkEventsFromReflectionCall (ref ReflectionPatternContext reflectionContext, TypeDefinition declaringType, string name)
@@ -3144,7 +3150,7 @@ namespace Mono.Linker.Steps {
 				}
 
 				if (!foundMatch)
-					reflectionContext.RecordUnrecognizedPattern ($"Reflection call '{reflectionContext.MethodCalled.FullName}' inside '{reflectionContext.MethodCalling.FullName}' could not resolve event `{name}` on type `{declaringType.FullName}`.");
+					reflectionContext.RecordUnrecognizedMemberAccessPattern ($"Reflection call '{reflectionContext.MethodCalled.FullName}' inside '{reflectionContext.MethodCalling.FullName}' could not resolve event `{name}` on type `{declaringType.FullName}`.");
 			}
 		}
 

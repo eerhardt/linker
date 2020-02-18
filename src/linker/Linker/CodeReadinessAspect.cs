@@ -1,4 +1,4 @@
-﻿namespace Mono.Linker.Analysis
+﻿namespace Mono.Linker
 {
 	public enum CodeReadinessAspect
 	{

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Mono.Cecil;
 
 namespace Mono.Linker.Analysis
@@ -459,7 +460,7 @@ namespace Mono.Linker.Analysis
 
 	public class ApiFilter
 	{
-		readonly Dictionary<MethodDefinition, List<(MethodDefinition ReflectionMethod, string Message)>> unanalyzedMethods;
+		readonly Dictionary<MethodDefinition, List<(MethodDefinition ReflectionMethod, CodeReadinessAspect Aspect, string Message)>> unanalyzedMethods;
 		readonly HashSet<MethodDefinition> entryMethods;
 		readonly ApiAnnotations apiAnnotations;
 
@@ -468,7 +469,7 @@ namespace Mono.Linker.Analysis
 			// don't use any predetermined unanalyzed methods (from the linker)
 		}
 
-		public ApiFilter (Dictionary<MethodDefinition, List<(MethodDefinition,string)>> unanalyzedMethods, HashSet<MethodDefinition> entryMethods, ApiAnnotations apiAnnotations)
+		public ApiFilter (Dictionary<MethodDefinition, List<(MethodDefinition, CodeReadinessAspect, string)>> unanalyzedMethods, HashSet<MethodDefinition> entryMethods, ApiAnnotations apiAnnotations)
 		{
 			this.unanalyzedMethods = unanalyzedMethods;
 			this.entryMethods = entryMethods;
@@ -501,16 +502,22 @@ namespace Mono.Linker.Analysis
 
 		public ApiAnnotation GetApiAnnotation (MethodDefinition method)
 		{
-			CodeReadinessAspect requestedAspect = CodeReadinessAspect.MemberTrim;
+			CodeReadinessAspect requestedAspect = CodeReadinessAspect.TypeTrim;
 
 			if (unanalyzedMethods.TryGetValue (method, out var records)) {
-				return new LinkerUnanalyzedAnnotation () {
-					TypeFullName = method.DeclaringType.FullName,
-					MethodNames = new string [] { method.Name },
-					Aspect = CodeReadinessAspect.None,
-					Category = nameof(InterestingReasonKind.LinkerUnanalyzed),
-					UnanalyzedReflectionCalls = records
-				};
+				var applicableRecords = records
+					.Where (r => IsApplicableAnnotation (r.Aspect, requestedAspect))
+					.Select (r => (r.ReflectionMethod, r.Message));
+
+				if (applicableRecords.Any ()) {
+					return new LinkerUnanalyzedAnnotation () {
+						TypeFullName = method.DeclaringType.FullName,
+						MethodNames = new string [] { method.Name },
+						Aspect = CodeReadinessAspect.None,
+						Category = nameof (InterestingReasonKind.LinkerUnanalyzed),
+						UnanalyzedReflectionCalls = applicableRecords.ToList ()
+					};
+				}
 			}
 
 			ApiAnnotation annotation = this.apiAnnotations.GetAnnotation (method, requestedAspect);

@@ -57,6 +57,6 @@ namespace Mono.Linker
 		/// <param name="message">Humanly readable message describing what failed during the pattern recognition.</param>
 		/// <remarks>This effectively means that there's a potential hole in the linker marking - some items which are accessed only through
 		/// reflection may not be marked correctly and thus may fail at runtime.</remarks>
-		void UnrecognizedReflectionAccessPattern (MethodDefinition sourceMethod, MethodDefinition reflectionMethod, string message);
+		void UnrecognizedReflectionAccessPattern (MethodDefinition sourceMethod, MethodDefinition reflectionMethod, CodeReadinessAspect aspect, string message);
 	}
 }

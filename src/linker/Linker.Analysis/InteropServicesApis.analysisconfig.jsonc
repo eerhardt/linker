@@ -21,7 +21,7 @@
     "Category": "ToInvestigate-COM"
   },
   {
-    "Type": "System.Runtime.InteropServices.ComSourceInterfaceAttribute",
+    "Type": "System.Runtime.InteropServices.ComSourceInterfacesAttribute",
     "Methods": [ "*" ],
     "Aspect": "TypeTrim",
     "Warn": "These contain type references in the attribute properties. We need to make sure that linker can root types referenced like this.",
@@ -54,7 +54,7 @@
       "GetComObjectData",
       "GetEndComSlot",
       "GetStartComSlot",
-      "GetDispatchForObject",
+      "GetIDispatchForObject",
       "GetIUnknownForObject",
       "GetObjectForIUnknown",
       "GetTypedObjectForIUnknown",

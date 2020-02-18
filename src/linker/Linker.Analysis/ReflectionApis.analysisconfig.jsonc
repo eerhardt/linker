@@ -808,7 +808,7 @@
   {
     "Type": "System.Reflection.Emit.TypeBuilder",
     "Methods": [
-      "ctor",
+      ".ctor",
       "GetMethod(System.Type,System.Reflection.MethodInfo)",
       "GetConstructor(System.Type,System.Reflection.ConstructorInfo)",
       "GetField(System.Type,System.Reflection.FieldInfo)"

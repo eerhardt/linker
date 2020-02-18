@@ -25,7 +25,7 @@ namespace Mono.Linker.Tests.TestCasesRunner
 			});
 		}
 
-		public void UnrecognizedReflectionAccessPattern (MethodDefinition sourceMethod, MethodDefinition reflectionMethod, string message)
+		public void UnrecognizedReflectionAccessPattern (MethodDefinition sourceMethod, MethodDefinition reflectionMethod, CodeReadinessAspect aspect, string message)
 		{
 			UnrecognizedPatterns.Add (new ReflectionAccessPattern {
 				SourceMethod = sourceMethod,

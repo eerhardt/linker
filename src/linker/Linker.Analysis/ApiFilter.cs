@@ -502,7 +502,7 @@ namespace Mono.Linker.Analysis
 
 		public ApiAnnotation GetApiAnnotation (MethodDefinition method)
 		{
-			CodeReadinessAspect requestedAspect = CodeReadinessAspect.TypeTrim;
+			CodeReadinessAspect requestedAspect = CodeReadinessAspect.MemberTrim;
 
 			if (unanalyzedMethods.TryGetValue (method, out var records)) {
 				var applicableRecords = records

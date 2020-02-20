@@ -25,7 +25,8 @@ namespace Mono.Linker.Analysis
 									   bool [] ignoreEdgesTo = null,
 									   bool [] ignoreEdgesFrom = null,
 									   int [][] ignoreEdges = null,
-									   Action<IntBFSResult> resultAction = null)
+									   Action<IntBFSResult> resultAction = null,
+									   IntMapping<Cecil.MethodDefinition> mapping = null)
 		{
 
 			var sources = new List<int> ();
@@ -42,10 +43,10 @@ namespace Mono.Linker.Analysis
 					continue;
 
 				foreach (var firstCaller in neighbors [source]) {
-					if (firstCaller == source)
+					if (firstCaller == source && !isDestination[firstCaller])
 						continue;
 
-					if (isSource != null && isSource [firstCaller])
+					if (isSource != null && isSource [firstCaller] && firstCaller != source)
 						continue;
 
 					if (!isDestination [firstCaller]) {
@@ -191,6 +192,9 @@ namespace Mono.Linker.Analysis
 					if (isDestination [v]) {
 						destinations.Add (v);
 						if (!returnMultiple)
+							goto Return;
+
+						if (destinations.Count >= 10)
 							goto Return;
 						// don't queue neighbors of a destination node.
 						// we don't want to show paths to a dest through a different dest.

@@ -281,6 +281,7 @@ namespace Mono.Linker.Analysis
 				// }
 
 				while (true) {
+					Console.Write ($"\rProcessing stacktraces: {cq.Count} remaining");
 					if (cq.TryDequeue (out AnalyzedStacktrace res)) {
 						if (res.source == -2) {
 							// signals completion
@@ -356,20 +357,23 @@ namespace Mono.Linker.Analysis
 											Message = reflectionCalls.Message
 										}
 									}); ;
+									Interlocked.Add (ref num_stacktraces, 1);
 								}
 							} else {
-								// queue it for printing
-								cq.Enqueue (new AnalyzedStacktrace {
-									source = sourceInterestingMethod,
-									stacktrace = f,
-									category = CategorizeStacktraceWithCecil (f.Methods),
-									annotation = annotation
-								});
-								Interlocked.Add (ref num_stacktraces, 1);
+								if (f.Methods.Count > 1) { // TODO: Workaround for having to report empty stack traces (1 method) due to LinkerUnanalyzed annotations
+									// queue it for printing
+									cq.Enqueue (new AnalyzedStacktrace {
+										source = sourceInterestingMethod,
+										stacktrace = f,
+										category = CategorizeStacktraceWithCecil (f.Methods),
+										annotation = annotation
+									});
+									Interlocked.Add (ref num_stacktraces, 1);
+								}
 							}
 						}
 					}
-				});
+				}, mapping);
 			cq.Enqueue (new AnalyzedStacktrace { source = -2 }); // signal completion
 
 			// record the shortest reverse path from each "dangerous" API to each public or virtual method

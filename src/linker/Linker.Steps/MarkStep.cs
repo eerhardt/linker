@@ -1144,7 +1144,9 @@ namespace Mono.Linker.Steps {
 
 			Annotations.Mark (type);
 
+			Tracer.Push (type);
 			ApplyPreserveInfo (type);
+			Tracer.Pop ();
 
 			return type;
 		}

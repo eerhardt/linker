@@ -1,4 +1,5 @@
-﻿using Mono.Linker.Analysis;
+﻿using Mono.Cecil;
+using Mono.Linker.Analysis;
 using System.IO;
 using System.Linq;
 
@@ -29,6 +30,13 @@ namespace Mono.Linker.Steps
 				Path.GetDirectoryName (entryPointStep.EntryPoints.First ().Module.FileName),
 				"*.analysisconfig.jsonc")) {
 				ApiAnnotations.LoadConfiguration (analysisConfigFile, Context);
+			}
+		}
+
+		protected override void ProcessAssembly (AssemblyDefinition assembly)
+		{
+			foreach (var type in assembly.MainModule.GetTypes()) {
+				Annotations.SetPreserve (type, TypePreserve.All);
 			}
 		}
 	}

@@ -405,7 +405,7 @@ namespace Mono.Linker {
 					context.ExcludedFeatures = excluded;
 				}
 
-				p.AddStepBefore (typeof (MarkStep), new RemoveUnreachableBlocksStep ());
+				// p.AddStepBefore (typeof (MarkStep), new RemoveUnreachableBlocksStep ());
 
 				if (disabled_optimizations.Count > 0) {
 					foreach (var item in disabled_optimizations) {

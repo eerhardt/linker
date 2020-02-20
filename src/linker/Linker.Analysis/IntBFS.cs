@@ -34,7 +34,10 @@ namespace Mono.Linker.Analysis
 					sources.Add (i);
 				}
 			}
+			int sourceIndex = 0;
 			foreach (var source in sources) {
+				Console.Write ($"\rProcessing source: {sourceIndex++} / {sources.Count}");
+
 				if (neighbors [source] == null)
 					continue;
 

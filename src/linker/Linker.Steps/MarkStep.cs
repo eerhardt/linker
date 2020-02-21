@@ -2370,7 +2370,7 @@ namespace Mono.Linker.Steps {
 				if (methodCalledDefinition == null)
 					continue;
 
-				ReflectionPatternContext reflectionContext = new ReflectionPatternContext (_context, body.Method, methodCalledDefinition, i);
+				ReflectionPatternContext reflectionContext = new ReflectionPatternContext (_context, body.Method, methodCalled, methodCalledDefinition, i);
 				try {
 					detector.Process (ref reflectionContext);
 				}
@@ -2397,13 +2397,15 @@ namespace Mono.Linker.Steps {
 #endif
 
 			public MethodDefinition MethodCalling { get; private set; }
+			public MethodReference MethodCalledReference { get; private set; }
 			public MethodDefinition MethodCalled { get; private set; }
 			public int InstructionIndex { get; private set; }
 
-			public ReflectionPatternContext (LinkContext context, MethodDefinition methodCalling, MethodDefinition methodCalled, int instructionIndex)
+			public ReflectionPatternContext (LinkContext context, MethodDefinition methodCalling, MethodReference methodCalledReference, MethodDefinition methodCalled, int instructionIndex)
 			{
 				_context = context;
 				MethodCalling = methodCalling;
+				MethodCalledReference = methodCalledReference;
 				MethodCalled = methodCalled;
 				InstructionIndex = instructionIndex;
 
@@ -2917,6 +2919,185 @@ namespace Mono.Linker.Steps {
 						}
 
 						break;
+
+					//
+					// System.Reflection.MemberInfo
+					//
+					case "MemberInfo" when methodCalledType.Namespace == "System.Reflection":
+						switch (methodCalled.Name) {
+							//
+							// IsDefined (System.Type attributeType, bool inherit)
+							// GetCustomAttributes (System.Type attributeType, bool inherit)
+							//
+							case "IsDefined":
+							case "GetCustomAttributes":
+								ProcessGetCustomAttributeOrIsDefinedCall (ref reflectionContext, instructionIndex - 1, thisExtension: false);
+								break;
+						}
+
+						break;
+
+					//
+					// System.Reflection.ParameterInfo
+					//
+					case "ParameterInfo" when methodCalledType.Namespace == "System.Reflection":
+						switch (methodCalled.Name) {
+							//
+							// IsDefined (System.Type attributeType, bool inherit)
+							// GetCustomAttributes (System.Type attributeType, bool inherit)
+							//
+							case "IsDefined":
+							case "GetCustomAttributes":
+								ProcessGetCustomAttributeOrIsDefinedCall (ref reflectionContext, instructionIndex - 1, thisExtension: false);
+								break;
+						}
+
+						break;
+
+					//
+					// System.Reflection.CustomAttributeExtensions
+					//
+					case "CustomAttributeExtensions" when methodCalledType.Namespace == "System.Reflection":
+						if (methodCalled.ContainsGenericParameter) {
+							switch (methodCalled.Name) {
+								// GetCustomAttribute<T> (this *Info element)
+								// GetCustomAttribute<T> (this *Info element, bool inherit)
+								// GetCustomAttributes<T> (this *Info element)
+								// GetCustomAttributes<T> (this *Info element, bool inherit)
+								case "GetCustomAttribute":
+								case "GetCustomAttributes": {
+										reflectionContext.AnalyzingPattern ();
+										if (reflectionContext.MethodCalledReference is GenericInstanceMethod instanceMethod &&
+											instanceMethod.GenericArguments.Count == 1) {
+											var attributeType = instanceMethod.GenericArguments [0].Resolve ();
+											if (attributeType == null) {
+												reflectionContext.RecordUnrecognizedTypeAccessPattern ($"Call to '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' was detected with generic argument expression which cannot be analyzed");
+												return;
+											}
+
+											// If the attribute type is sealed, then the code is safe as the linker can correctly mark it (it was already marked)
+											// if it's not sealed we would in theory need to mark all of the derived types - which for now we decided not to do.
+											if (attributeType.IsSealed) {
+												reflectionContext.RecordRecognizedPattern (attributeType, () => { });
+											} else {
+												reflectionContext.RecordUnrecognizedTypeAccessPattern ($"Call to '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' can enumerate all attributes of type '{attributeType}' or derived, the linker currently doesn't preserve the derived types always.");
+											}
+
+										} else {
+											reflectionContext.RecordUnrecognizedTypeAccessPattern ($"Call to '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' couldn't be decomposed");
+										}
+									}
+									break;
+							}
+						} else {
+							switch (methodCalled.Name) {
+								//
+								// IsDefined (this *Info element, System.Type attributeType)
+								// IsDefined (this *Info element, System.Type attributeType, bool inherit)
+								// GetCustomAttribute (this *Info element, System.Type attributeType)
+								// GetCustomAttribute (this *Info element, System.Type attributeType, bool inherit)
+								// GetCustomAttributes (this *Info element, System.Type attributeType)
+								// GetCustomAttributes (this *Info element, System.Type attributeType, bool inherit)
+								//
+								case "IsDefined":
+								case "GetCustomAttribute":
+								case "GetCustomAttributes" when methodCalled.Parameters.Count >= 2 && methodCalled.Parameters [1].ParameterType.IsTypeOf ("System", "Type"):
+									ProcessGetCustomAttributeOrIsDefinedCall (ref reflectionContext, instructionIndex - 1, thisExtension: true);
+									break;
+							}
+						}
+
+						break;
+
+					// 
+					// System.Runtime.InteropServices.Marshal
+					//
+					case "Marshal" when methodCalledType.Namespace == "System.Runtime.InteropServices":
+						if (methodCalled.ContainsGenericParameter) {
+							switch (methodCalled.Name) {
+								//
+								// SizeOf<T> ()
+								// SizeOf<T> (T structure)
+								// OffsetOf<T> (string fieldName)
+								// StructureToPtr<T> (T structure, IntPtr ptr, bool fDeleteOld)
+								// DestroyStructure<T> (IntPtr ptr)
+								// PtrToStructure<T> (IntPtr ptr, T structure)
+								// PtrToStructure<T> (IntPtr ptr)
+								//
+								//
+								case "SizeOf":
+								case "OffsetOf":
+								case "StructureToPtr":
+								case "DestroyStructure":
+								case "PtrToStructure": {
+										reflectionContext.AnalyzingPattern ();
+										if (reflectionContext.MethodCalledReference is GenericInstanceMethod instanceMethod &&
+											instanceMethod.GenericArguments.Count == 1) {
+											var structureType = instanceMethod.GenericArguments [0].Resolve ();
+											if (structureType == null) {
+												reflectionContext.RecordUnrecognizedMemberAccessPattern ($"Call to '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' was detected with generic argument expression which cannot be analyzed");
+												return;
+											}
+
+											// For the structure size/layout to remain the same we must keep all the fields
+											reflectionContext.RecordRecognizedPattern (structureType, () => {
+												_markStep.MarkFields (structureType, includeStatic: false);
+											});
+
+											if (methodCalled.Name == "PtrToStructure") {
+												// PtrToStructure also requires the default ctor to exist
+												MarkMethodsFromReflectionCall (ref reflectionContext, structureType, ".ctor", null, null, parametersCount: 0);
+											}
+										} else {
+											reflectionContext.RecordUnrecognizedTypeAccessPattern ($"Call to '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' couldn't be decomposed");
+										}
+									}
+									break;
+							}
+						} else {
+							switch (methodCalled.Name) {
+								//
+								// SizeOf (Type t)
+								// SizeOf (object structure) // This is not analyzable currently
+								// OffsetOf (Type t, string fieldName)
+								//
+								case "SizeOf":
+								case "OffsetOf": {
+										reflectionContext.AnalyzingPattern ();
+										var structureType = GetTypeParameterValue (ref reflectionContext, instructionIndex - 1, 0);
+										if (structureType != null) {
+											// For the structure size/layout to remain the same we must keep all the fields
+											reflectionContext.RecordRecognizedPattern (structureType, () => {
+												_markStep.MarkFields (structureType, includeStatic: false);
+											});
+										}
+									}
+									break;
+
+								// StructureToPtr (object structure, IntPtr ptr, bool fDeleteOld) // Not analyzable
+								// PtrToStructure (IntPtr ptr, object structure) // Not analyzable
+								case "StructureToPtr":
+								case "PtrToStructure":
+									reflectionContext.AnalyzingPattern ();
+									reflectionContext.RecordUnrecognizedMemberAccessPattern ($"Call to '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' requires all fields to be present on the specified structure, but linker can't determine the type of the structure.");
+									break;
+
+								// DestroyStructure (IntPtr ptr, Type structureType)
+								case "DestroyStructure": {
+										reflectionContext.AnalyzingPattern ();
+										var structureType = GetTypeParameterValue (ref reflectionContext, instructionIndex - 1, 1);
+										if (structureType != null) {
+											// For the structure size/layout to remain the same we must keep all the fields
+											reflectionContext.RecordRecognizedPattern (structureType, () => {
+												_markStep.MarkFields (structureType, includeStatic: false);
+											});
+										}
+									}
+									break;
+							}
+						}
+
+						break;
 				}
 
 			}
@@ -3048,6 +3229,50 @@ namespace Mono.Linker.Steps {
 						Debug.Fail ("Unsupported member type");
 						reflectionContext.RecordUnrecognizedMemberAccessPattern ($"Reflection call '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' is of unexpected member type.");
 						break;
+				}
+			}
+
+			void ProcessGetCustomAttributeOrIsDefinedCall (ref ReflectionPatternContext reflectionContext, int instructionIndex, bool thisExtension)
+			{
+				reflectionContext.AnalyzingPattern ();
+				var attributeType = GetTypeParameterValue (ref reflectionContext, instructionIndex, thisExtension ? 1 : 0);
+				if (attributeType != null) {
+					// If the attribute type is sealed, then the code is safe as the linker can correctly mark it (it was already marked)
+					// if it's not sealed we would in theory need to mark all of the derived types - which for now we decided not to do.
+					if (attributeType.IsSealed) {
+						reflectionContext.RecordRecognizedPattern (attributeType, () => { });
+					} else {
+						reflectionContext.RecordUnrecognizedTypeAccessPattern ($"Call to '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' can enumerate all attributes of type '{attributeType}' or derived, the linker currently doesn't preserve the derived types always.");
+					}
+				}
+			}
+
+			TypeDefinition GetTypeParameterValue (ref ReflectionPatternContext reflectionContext, int instructionIndex, int parameterIndex)
+			{
+				var parameters = reflectionContext.MethodCalled.Parameters;
+
+				if (parameters.Count <= parameterIndex) {
+					reflectionContext.RecordUnrecognizedMemberAccessPattern ($"Call to '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' couldn't be decomposed");
+					return null;
+				}
+
+				var first_arg_instr = GetInstructionAtStackDepth (_instructions, instructionIndex, parameters.Count - parameterIndex);
+				if (first_arg_instr < 0) {
+					reflectionContext.RecordUnrecognizedMemberAccessPattern ($"Call to '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' couldn't be decomposed");
+					return null;
+				}
+
+				if (parameters [parameterIndex].ParameterType.IsTypeOf ("System", "Type")) {
+					var attributeType = FindReflectionTypeForLookup (_instructions, first_arg_instr + 1);
+					if (attributeType == null) {
+						reflectionContext.RecordUnrecognizedMemberAccessPattern ($"Call to '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' was detected with 1st argument expression which cannot be analyzed");
+						return null;
+					}
+
+					return attributeType;
+				} else {
+					reflectionContext.RecordUnrecognizedTypeAccessPattern ($"Call to '{reflectionContext.MethodCalled.FullName}' inside '{_methodCalling.FullName}' couldn't be decomposed");
+					return null;
 				}
 			}
 

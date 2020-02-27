@@ -29,7 +29,8 @@
     "Methods": [
       "GetEnumUnderlyingType",
       "GetEnumNames",
-      "IsEnumDefined"
+      "IsEnumDefined",
+      "GetEnumData"
     ],
     "Aspect": "MemberTrim",
     "Suppress": "Calls GetFields internally but is perfectly safe as linker keeps all fields on enum types.",

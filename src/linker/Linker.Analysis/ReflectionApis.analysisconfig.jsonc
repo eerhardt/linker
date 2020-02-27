@@ -37,6 +37,18 @@
     "Category": "CreateInstance"
   },
 
+  {
+    "Type": "System.Runtime.InteropServices.Marshal",
+    "Methods": [
+      // PtrToStructure
+      //   Currently unsafe because it requires the target type to be instantiated - which the linker can't analyze yet
+      "PtrToStructure"
+    ],
+    "Aspect": "MemberTrim",
+    "Warn": "PtrToStructure requires the target type to be instantiated",
+    "Category": "CreateInstance"
+  },
+
   // System.AppDomain
   {
     "Type": "System.AppDomain",
@@ -157,6 +169,8 @@
       "GetFields",
       "GetMethods",
       "GetProperties",
+      "GetDefaultMembers", // This is basically implemented on RuntimeType by returning all members marked with DefaultMemberAttribute
+      // Linker could in theory handle this by understanding that attribute
       "GetInterfaceMap" // ??? This is questionable - does linker actually trim members of interfaces?
     ],
     "Aspect": "MemberTrim",
@@ -704,6 +718,33 @@
     ],
     "Aspect": "TypeTrim",
     "Warn": "Add reference to the typ",
+    "Category": "KnownReflection"
+  },
+
+  {
+    "Type": "System.Reflection.TypeInfo/<GetDeclaredMethods>d__10",
+    "Methods": [ "MoveNext" ],
+    "Aspect": "MemberTrim",
+    "Warn": "Some members may have been trimmed, this method may no return the full list anymore",
+    "Category": "KnownReflection_EnumMetadata"
+  },
+
+  {
+    "Type": "System.Reflection.TypeInfo/<get_DeclaredNestedTypes>d__22",
+    "Methods": [ "MoveNext" ],
+    "Aspect": "TypeTrim",
+    "Warn": "Add reference to the type",
+    "Category": "KnownReflection"
+  },
+
+  {
+    // All these methods enumerate members on a type, when member trimming some may not be present.
+    "Type": "System.Reflection.TypeDelegator",
+    "Methods": [
+      "GetConstructorImpl"
+    ],
+    "Aspect": "MemberTrim",
+    "Warn": "The requested member may have been trimmed, please make sure that there's a reference to it",
     "Category": "KnownReflection"
   },
 

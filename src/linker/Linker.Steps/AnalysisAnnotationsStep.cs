@@ -36,7 +36,7 @@ namespace Mono.Linker.Steps
 		protected override void ProcessAssembly (AssemblyDefinition assembly)
 		{
 			foreach (var type in assembly.MainModule.GetTypes()) {
-				Annotations.SetPreserve (type, TypePreserve.All);
+				// Annotations.SetPreserve (type, TypePreserve.All);
 			}
 		}
 	}

@@ -504,6 +504,11 @@ namespace Mono.Linker.Analysis
 		{
 			CodeReadinessAspect requestedAspect = CodeReadinessAspect.MemberTrim;
 
+			ApiAnnotation annotation = this.apiAnnotations.GetAnnotation (method, requestedAspect);
+			if (annotation != null) {
+				return annotation;
+			}
+
 			if (unanalyzedMethods.TryGetValue (method, out var records)) {
 				var applicableRecords = records
 					.Where (r => IsApplicableAnnotation (r.Aspect, requestedAspect))
@@ -520,31 +525,26 @@ namespace Mono.Linker.Analysis
 				}
 			}
 
-			ApiAnnotation annotation = this.apiAnnotations.GetAnnotation (method, requestedAspect);
-			if (annotation != null) {
-				return annotation;
-			}
-
-			InterestingReason reason = GetInterestingReason (method);
-			if (reason != null && IsApplicableAnnotation (reason.Aspect, requestedAspect)) {
-				if (reason.Kind == InterestingReasonKind.AnnotatedLinkerFriendly) {
-					return new SuppressApiAnnotation () {
-						TypeFullName = method.DeclaringType.FullName,
-						MethodNames = new string [] { method.Name },
-						Aspect = reason.Aspect,
-						Category = reason.Kind.ToString (),
-						Reason = reason.Message
-					};
-				} else {
-					return new WarnApiAnnotation () {
-						TypeFullName = method.DeclaringType.FullName,
-						MethodNames = new string [] { method.Name },
-						Aspect = reason.Aspect,
-						Category = reason.Kind.ToString (),
-						Message = reason.Message
-					};
-				}
-			}
+			//InterestingReason reason = GetInterestingReason (method);
+			//if (reason != null && IsApplicableAnnotation (reason.Aspect, requestedAspect)) {
+			//	if (reason.Kind == InterestingReasonKind.AnnotatedLinkerFriendly) {
+			//		return new SuppressApiAnnotation () {
+			//			TypeFullName = method.DeclaringType.FullName,
+			//			MethodNames = new string [] { method.Name },
+			//			Aspect = reason.Aspect,
+			//			Category = reason.Kind.ToString (),
+			//			Reason = reason.Message
+			//		};
+			//	} else {
+			//		return new WarnApiAnnotation () {
+			//			TypeFullName = method.DeclaringType.FullName,
+			//			MethodNames = new string [] { method.Name },
+			//			Aspect = reason.Aspect,
+			//			Category = reason.Kind.ToString (),
+			//			Message = reason.Message
+			//		};
+			//	}
+			//}
 
 			return null;
 		}

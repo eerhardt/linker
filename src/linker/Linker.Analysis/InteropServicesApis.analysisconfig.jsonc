@@ -84,18 +84,16 @@
     "Warn": "ToInvestigate - TODO",
     "Category": "ToInvestigate"
   },
-  {
-    "Type": "System.Runtime.InteropServices.Marshal",
-    "Methods": [
-      "OffsetOf",
-      "SizeOf",
-      "StructureToPtr",
-      "PtrToStructure" // This is not only problematic due to layout, but it also requires the type to be instantiated (to have .ctor)
-    ],
-    "Aspect": "MemberTrim",
-    "Warn": "ExactLayout - these require the linker to keep the exact layout of the class/struct. This works for struct, but is not guaranteed for classes.",
-    "Category": "ExactLayout"
-  },
+
+  // System.Runtime.InteropServices.Marshal
+  // OffsetOf
+  // SizeOf
+  // StructureToPtr
+  // DestroyStructure
+  //   These are safe since they only work on non-auto layout types (runtime will fail the call on auto-layout types)
+  //   and linker keeps all fields on non-auto layout types already.
+  //
+  // PtrToStructure is handled along-side Activator.CreateInstance
 
   // System.Runtime.InteropServices.MemoryMarshal
   //   Lot of dangerous code in terms of type safety (for example allows reading types from flat array of bytes and so on)

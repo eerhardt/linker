@@ -179,23 +179,24 @@ namespace Mono.Linker.Analysis
 			isAnnotatedSafeMethod = new bool [callGraph.Methods.Count];
 			bool[] isPublicOrVirtual = new bool [callGraph.Methods.Count];
 			int [] [] safeEdges = new int [callGraph.Methods.Count] [];
-			var virtualMethodsWithWarnAnnotation = new Queue<(MethodDefinition, int, WarnApiAnnotation)> ();
 			for (int i = 0; i < intCallGraph.numMethods; i++) {
 				var cecilMethod = mapping.intToMethod [i];
 				if (cecilMethod == null) {
 					continue;
 				}
 
+				var annotation = apiFilter.GetApiAnnotation (cecilMethod);
 				if (intCallGraph.isInteresting [i]) {
 					numInterestingMethods++;
-					var annotation = apiFilter.GetApiAnnotation (cecilMethod);
 					interestingReasons [i] = annotation;
-					TrackCategory (annotation, cecilMethod);
 
-					if (annotation is WarnApiAnnotation warnAnnotation && cecilMethod.IsVirtual) {
-						virtualMethodsWithWarnAnnotation.Enqueue ((cecilMethod, i, warnAnnotation));
-					}
+					//TrackCategory (annotation, cecilMethod);
 				}
+
+				if (annotation is WarnApiAnnotation) {
+					isAnnotatedSafeMethod [i] = true;
+				}
+
 				if (intCallGraph.isEntry [i]) {
 					numEntryMethods++;
 				}
@@ -217,46 +218,6 @@ namespace Mono.Linker.Analysis
 					}
 
 					safeEdges [i] = safeCallees;
-				}
-			}
-
-			// This implies annotations from base methods to overrides.
-			// This is effectively a workaround for a reporting issue - ideally we would not report callstacks
-			// for cases where an override has a (override) dependency on a base method which is marked with a warn annotation.
-			// But currently we don't have enough information in the graph to determine this.
-			// Note that it is technically correct to mark all overrides with the same annotation as the base
-			// since there's no way for the linker to tell if the base method is ever used or not.
-			// Side note: Technically if the base method is abstract it will never be used, but we do mark some abstract methods
-			// as dangerous basically as a way to propagate issues from the internal overrides to publicly facing APIs.
-			// For example Type.GetMethod itself is perfectly safe since it's abstract, it's the RuntimeType.GetMethod which is dangerous
-			// all code is calling through Type.GetMethod, so we would either have to blame the RuntimeType.ctor (which is hard as there's no managed
-			// callsite for it and it would make lot of noise) or we mark the base method as dangerous.
-			while (virtualMethodsWithWarnAnnotation.Count > 0) {
-				(var methodDefinition, var methodIndex, var warnAnnotation) = virtualMethodsWithWarnAnnotation.Dequeue ();
-				var overrides = annotationStore.GetOverrides (methodDefinition);
-				if (overrides == null)
-					continue;
-
-				foreach (var overrideMethod in overrides) {
-					var overrideMethodDefinition = overrideMethod.Override;
-					if (!mapping.methodToInt.TryGetValue (overrideMethodDefinition, out var overrideMethodIndex))
-						continue;
-
-					var existingAnnotation = interestingReasons [overrideMethodIndex];
-					if (existingAnnotation == null || existingAnnotation is LinkerUnanalyzedAnnotation) {
-						if (existingAnnotation != null) {
-							Console.WriteLine ($"Overwriting annotation {existingAnnotation}");
-						}
-
-						// Console.WriteLine ($"Adding implied annotation {warnAnnotation} to {overrideMethodDefinition} because it overrides annotated {methodDefinition}");
-						interestingReasons [overrideMethodIndex] = warnAnnotation;
-						intCallGraph.isInteresting [overrideMethodIndex] = true;
-
-						// Propagate recuresively
-						virtualMethodsWithWarnAnnotation.Enqueue ((overrideMethodDefinition, overrideMethodIndex, warnAnnotation));
-					} else {
-						Console.WriteLine ($"### {overrideMethodDefinition}{Environment.NewLine}  Skipping application of implied annotation since it already has one.{Environment.NewLine}   {warnAnnotation}{Environment.NewLine}   {methodDefinition}");
-					}
 				}
 			}
 
@@ -287,6 +248,7 @@ namespace Mono.Linker.Analysis
 							// signals completion
 							break;
 						}
+
 						RecordStacktrace (res);
 						// ReportStacktraceBuckets(res);
 						if (!buckets.ContainsKey (res.category)) {
@@ -342,20 +304,16 @@ namespace Mono.Linker.Analysis
 
 							var annotation = interestingReasons [sourceInterestingMethod];
 							if (annotation is LinkerUnanalyzedAnnotation linkerUnanalyzedAnnotation) {
-								foreach (var reflectionCalls in linkerUnanalyzedAnnotation.UnanalyzedReflectionCalls) {
+								foreach (var warnAnnotation in linkerUnanalyzedAnnotation.WarnAnnotations) {
 									ReportedStacktrace reportedStacktrace = new ReportedStacktrace {
-										Methods = f.Methods.Prepend (reflectionCalls.ReflectionMethod).ToList ()
+										Methods = f.Methods.Prepend (warnAnnotation.Method).ToList ()
 									};
 
 									cq.Enqueue (new AnalyzedStacktrace {
 										source = sourceInterestingMethod,
 										stacktrace = reportedStacktrace,
 										category = CategorizeStacktraceWithCecil (reportedStacktrace.Methods),
-										annotation = new WarnApiAnnotation {
-											Aspect = annotation.Aspect,
-											Category = annotation.Category,
-											Message = reflectionCalls.Message
-										}
+										annotation = warnAnnotation
 									}); ;
 									Interlocked.Add (ref num_stacktraces, 1);
 								}

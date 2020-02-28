@@ -460,7 +460,7 @@ namespace Mono.Linker.Analysis
 
 	public class ApiFilter
 	{
-		readonly Dictionary<MethodDefinition, List<(MethodDefinition ReflectionMethod, CodeReadinessAspect Aspect, string Message)>> unanalyzedMethods;
+		readonly Dictionary<MethodDefinition, LinkerUnanalyzedAnnotation> unanalyzedMethods;
 		readonly HashSet<MethodDefinition> entryMethods;
 		readonly ApiAnnotations apiAnnotations;
 
@@ -469,7 +469,7 @@ namespace Mono.Linker.Analysis
 			// don't use any predetermined unanalyzed methods (from the linker)
 		}
 
-		public ApiFilter (Dictionary<MethodDefinition, List<(MethodDefinition, CodeReadinessAspect, string)>> unanalyzedMethods, HashSet<MethodDefinition> entryMethods, ApiAnnotations apiAnnotations)
+		public ApiFilter (Dictionary<MethodDefinition, LinkerUnanalyzedAnnotation> unanalyzedMethods, HashSet<MethodDefinition> entryMethods, ApiAnnotations apiAnnotations)
 		{
 			this.unanalyzedMethods = unanalyzedMethods;
 			this.entryMethods = entryMethods;
@@ -492,7 +492,11 @@ namespace Mono.Linker.Analysis
 
 		public bool IsInterestingMethod (MethodDefinition method)
 		{
-			return GetApiAnnotation (method) != null;
+			var annotation = GetApiAnnotation (method);
+			if (annotation == null || annotation is WarnApiAnnotation)
+				return false;
+
+			return true;
 		}
 
 		public bool IsAnnotatedLinkerFriendlyApi (MethodDefinition method)
@@ -504,25 +508,13 @@ namespace Mono.Linker.Analysis
 		{
 			CodeReadinessAspect requestedAspect = CodeReadinessAspect.MemberTrim;
 
+			if (unanalyzedMethods.TryGetValue (method, out var unanalyzedAnnotation)) {
+				return unanalyzedAnnotation;
+			}
+
 			ApiAnnotation annotation = this.apiAnnotations.GetAnnotation (method, requestedAspect);
 			if (annotation != null) {
 				return annotation;
-			}
-
-			if (unanalyzedMethods.TryGetValue (method, out var records)) {
-				var applicableRecords = records
-					.Where (r => IsApplicableAnnotation (r.Aspect, requestedAspect))
-					.Select (r => (r.ReflectionMethod, r.Message));
-
-				if (applicableRecords.Any ()) {
-					return new LinkerUnanalyzedAnnotation () {
-						TypeFullName = method.DeclaringType.FullName,
-						MethodNames = new string [] { method.Name },
-						Aspect = CodeReadinessAspect.None,
-						Category = nameof (InterestingReasonKind.LinkerUnanalyzed),
-						UnanalyzedReflectionCalls = applicableRecords.ToList ()
-					};
-				}
 			}
 
 			//InterestingReason reason = GetInterestingReason (method);

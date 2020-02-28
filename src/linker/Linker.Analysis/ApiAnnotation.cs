@@ -9,7 +9,7 @@ namespace Mono.Linker.Analysis
 		public string TypeFullName { get; set; }
 		public TypeDefinition Type { get; set; }
 
-		public IEnumerable<string> MethodNames { get; set; }
+		public MethodDefinition Method { get; set; }
 
 		public CodeReadinessAspect Aspect { get; set; }
 
@@ -28,11 +28,11 @@ namespace Mono.Linker.Analysis
 
 	public class LinkerUnanalyzedAnnotation : ApiAnnotation
 	{
-		public List<(MethodDefinition ReflectionMethod, string Message)> UnanalyzedReflectionCalls { get; set; }
+		public List<WarnApiAnnotation> WarnAnnotations { get; set; }
 
 		public override string ToString ()
 		{
-			return $"{Category}: {string.Join (" | ", UnanalyzedReflectionCalls.Select (c => c.Message))}";
+			return $"{Category}: {string.Join (" | ", WarnAnnotations.Select (c => c.Message))}";
 		}
 	}
 

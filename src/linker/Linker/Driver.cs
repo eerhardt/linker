@@ -33,6 +33,7 @@ using System.Text;
 using System.Xml.XPath;
 
 using Mono.Linker.Steps;
+using System.Linq;
 
 namespace Mono.Linker {
 
@@ -452,6 +453,8 @@ namespace Mono.Linker {
 					var analysisEntryPointsStep = new AnalysisEntryPointsStep ();
 					var analysisAnnotationsStep = new AnalysisAnnotationsStep (analysisEntryPointsStep);
 					p.AddStepBefore (typeof (LoadReferencesStep), analysisEntryPointsStep);
+					var markStep = p.GetSteps ().OfType<MarkStep> ().First();
+					markStep.ApiAnnotations = analysisAnnotationsStep.ApiAnnotations;
 					p.AddStepBefore (typeof (MarkStep), analysisAnnotationsStep);
 					p.AddStepAfter (typeof (OutputStep), new AnalysisStep (context, analysisEntryPointsStep, analysisAnnotationsStep));
 				}

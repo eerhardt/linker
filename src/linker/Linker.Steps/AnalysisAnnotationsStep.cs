@@ -7,7 +7,7 @@ namespace Mono.Linker.Steps
 {
 	public class AnalysisAnnotationsStep : BaseStep
 	{
-		public ApiAnnotations ApiAnnotations { get; private set; }
+		public ApiAnnotations ApiAnnotations { get; private set; } = new ApiAnnotations ();
 
 		private AnalysisEntryPointsStep entryPointStep;
 
@@ -18,8 +18,6 @@ namespace Mono.Linker.Steps
 
 		protected override void Process ()
 		{
-			ApiAnnotations = new ApiAnnotations ();
-
 			foreach (var analysisConfigFile in Directory.EnumerateFiles (
 				Path.GetDirectoryName (typeof (AnalysisStep).Assembly.Location),
 				"*.analysisconfig.jsonc")) {
@@ -31,6 +29,8 @@ namespace Mono.Linker.Steps
 				"*.analysisconfig.jsonc")) {
 				ApiAnnotations.LoadConfiguration (analysisConfigFile, Context);
 			}
+
+			ApiAnnotations.ProcessLoadedAnnotations (Context.Annotations);
 		}
 
 		protected override void ProcessAssembly (AssemblyDefinition assembly)

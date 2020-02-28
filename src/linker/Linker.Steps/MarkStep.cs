@@ -36,6 +36,7 @@ using System.Text.RegularExpressions;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Mono.Collections.Generic;
+using Mono.Linker.Analysis;
 
 namespace Mono.Linker.Steps {
 
@@ -58,6 +59,8 @@ namespace Mono.Linker.Steps {
 			_typesWithInterfaces = new List<TypeDefinition> ();
 			_unreachableBodies = new List<MethodBody> ();
 		}
+
+		public ApiAnnotations ApiAnnotations { get; set; }
 
 		public AnnotationStore Annotations => _context.Annotations;
 		public Tracer Tracer => _context.Tracer;
@@ -2348,6 +2351,14 @@ namespace Mono.Linker.Steps {
 			if (HasManuallyTrackedDependency (body))
 				return;
 
+			// TODO: Review - if the method has itself an annotation, that one overrides any annotations found "in it" - at least for now
+			// Note that this means that the method will not be reported if there's no caller to it.
+			// This means specifically that virtual calls are problematic - it will only work if all methods which are directly annotated
+			// also annotate the base virtual method.
+			var apiAnnotation = ApiAnnotations.GetAnnotation (body.Method, CodeReadinessAspect.MemberTrim);
+			if (apiAnnotation != null)
+				return;
+
 			var instructions = body.Instructions;
 			ReflectionPatternDetector detector = new ReflectionPatternDetector (this, body.Method);
 
@@ -2391,15 +2402,16 @@ namespace Mono.Linker.Steps {
 		struct ReflectionPatternContext : IDisposable
 		{
 			readonly LinkContext _context;
-#if DEBUG
+
 			bool _patternAnalysisAttempted;
 			bool _patternReported;
-#endif
 
 			public MethodDefinition MethodCalling { get; private set; }
 			public MethodReference MethodCalledReference { get; private set; }
 			public MethodDefinition MethodCalled { get; private set; }
 			public int InstructionIndex { get; private set; }
+
+			public bool AnalysisAttempted { get => _patternAnalysisAttempted; }
 
 			public ReflectionPatternContext (LinkContext context, MethodDefinition methodCalling, MethodReference methodCalledReference, MethodDefinition methodCalled, int instructionIndex)
 			{
@@ -2409,27 +2421,21 @@ namespace Mono.Linker.Steps {
 				MethodCalled = methodCalled;
 				InstructionIndex = instructionIndex;
 
-#if DEBUG
 				_patternAnalysisAttempted = false;
 				_patternReported = false;
-#endif
 			}
 
 			[Conditional("DEBUG")]
 			public void AnalyzingPattern ()
 			{
-#if DEBUG
 				_patternAnalysisAttempted = true;
-#endif
 			}
 
 			public void RecordRecognizedPattern<T> (T accessedItem, Action mark)
 				where T : IMemberDefinition
 			{
-#if DEBUG
 				Debug.Assert (_patternAnalysisAttempted, "To correctly report all patterns, when starting to analyze a pattern the AnalyzingPattern must be called first.");
 				_patternReported = true;
-#endif
 
 				_context.Tracer.Push ($"Reflection-{accessedItem}");
 				try {
@@ -2444,21 +2450,17 @@ namespace Mono.Linker.Steps {
 			public void RecordUnrecognizedTypeAccessPattern (string message) => RecordUnrecognizedPattern (CodeReadinessAspect.TypeTrim, message);
 			public void RecordUnrecognizedAssemblyAccessPattern (string message) => RecordUnrecognizedPattern (CodeReadinessAspect.AssemblyTrim, message);
 
-			public void RecordUnrecognizedPattern (CodeReadinessAspect aspect, string message)
+			public void RecordUnrecognizedPattern (CodeReadinessAspect aspect, string message, string category = null)
 			{
-#if DEBUG
 				Debug.Assert (_patternAnalysisAttempted, "To correctly report all patterns, when starting to analyze a pattern the AnalyzingPattern must be called first.");
 				_patternReported = true;
-#endif
 
-				_context.ReflectionPatternRecorder.UnrecognizedReflectionAccessPattern (MethodCalling, MethodCalled, aspect, message);
+				_context.ReflectionPatternRecorder.UnrecognizedReflectionAccessPattern (MethodCalling, MethodCalled, aspect, message, category);
 			}
 
 			public void Dispose ()
 			{
-#if DEBUG
 				Debug.Assert(!_patternAnalysisAttempted || _patternReported, "A reflection pattern was analyzed, but no result was reported.");
-#endif
 			}
 		}
 
@@ -3010,6 +3012,13 @@ namespace Mono.Linker.Steps {
 						break;
 				}
 
+				if (!reflectionContext.AnalysisAttempted) {
+					var annotation = _markStep.ApiAnnotations.GetAnnotation (methodCalled, CodeReadinessAspect.MemberTrim);
+					if (annotation != null && annotation is WarnApiAnnotation warnAnnotation) {
+						reflectionContext.AnalyzingPattern ();
+						reflectionContext.RecordUnrecognizedPattern (warnAnnotation.Aspect, warnAnnotation.Message, warnAnnotation.Category);
+					}
+				}
 			}
 
 			//

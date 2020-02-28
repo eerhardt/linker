@@ -5,8 +5,8 @@ namespace Mono.Linker.Analysis
 {
 	class AnalysisReflectionPatternRecorder : IReflectionPatternRecorder
 	{
-		public Dictionary<MethodDefinition, List<(MethodDefinition ReflectionMethod, CodeReadinessAspect Aspect, string Message)>> UnanalyzedMethods { get; private set; } = 
-			new Dictionary<MethodDefinition, List<(MethodDefinition, CodeReadinessAspect, string)>> ();
+		public Dictionary<MethodDefinition, LinkerUnanalyzedAnnotation> UnanalyzedMethods { get; private set; } = 
+			new Dictionary<MethodDefinition, LinkerUnanalyzedAnnotation> ();
 		public Dictionary<MethodDefinition, HashSet<MethodDefinition>> ResolvedReflectionCalls { get; private set; } =
 			new Dictionary<MethodDefinition, HashSet<MethodDefinition>> ();
 
@@ -19,14 +19,24 @@ namespace Mono.Linker.Analysis
 			AddResolvedReflectionCall (sourceMethod, reflectionMethod);
 		}
 
-		public void UnrecognizedReflectionAccessPattern (MethodDefinition sourceMethod, MethodDefinition reflectionMethod, CodeReadinessAspect aspect, string message)
+		public void UnrecognizedReflectionAccessPattern (MethodDefinition sourceMethod, MethodDefinition reflectionMethod, 
+			CodeReadinessAspect aspect, string message, string category)
 		{
-			if (!UnanalyzedMethods.TryGetValue (sourceMethod, out var existingRecords)) {
-				existingRecords = new List<(MethodDefinition, CodeReadinessAspect, string)> ();
-				UnanalyzedMethods.Add (sourceMethod, existingRecords);
+			if (!UnanalyzedMethods.TryGetValue (sourceMethod, out var unanalyzedAnnotation)) {
+				unanalyzedAnnotation = new LinkerUnanalyzedAnnotation () {
+					WarnAnnotations = new List<WarnApiAnnotation> ()
+				};
+				UnanalyzedMethods.Add (sourceMethod, unanalyzedAnnotation);
 			}
 
-			existingRecords.Add ((reflectionMethod, aspect, message));
+			unanalyzedAnnotation.WarnAnnotations.Add (
+				new WarnApiAnnotation () {
+					Aspect = aspect,
+					Type = reflectionMethod.DeclaringType,
+					Method = reflectionMethod,
+					Category = category ?? "LinkerUnanalyzed",
+					Message = message
+				});
 		}
 
 		private void AddResolvedReflectionCall(MethodDefinition caller, MethodDefinition callee)

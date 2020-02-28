@@ -40,13 +40,13 @@ namespace Mono.Linker.Analysis
 			}
 		}
 
-		private struct ImmedaiteCallerKey
+		private struct ImmediateCallerKey
 		{
 			public string AssemblyName { get; set; }
 			public string CallerCallee { get; set; }
 			public string Category { get; set; }
 
-			public ImmedaiteCallerKey (AnalyzedStacktrace stackTrace)
+			public ImmediateCallerKey (AnalyzedStacktrace stackTrace)
 			{
 				var caller = stackTrace.stacktrace.Methods.Skip (1).First ();
 				var callee = stackTrace.stacktrace.Methods.First ();
@@ -61,7 +61,7 @@ namespace Mono.Linker.Analysis
 		public void WriteImmediateCallerStacktraces (IEnumerable<AnalyzedStacktrace> stacktraces)
 		{
 			var assemblyGroups = stacktraces
-				.GroupBy (s => new ImmedaiteCallerKey (s))
+				.GroupBy (s => new ImmediateCallerKey (s))
 				.GroupBy (g => (g.Key.AssemblyName, g.Key.Category))
 				.GroupBy (g => g.Key.AssemblyName);
 

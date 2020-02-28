@@ -41,7 +41,8 @@ namespace Mono.Linker
 			// Do nothing - there's no logging for successfully recognized patterns
 		}
 
-		public void UnrecognizedReflectionAccessPattern (MethodDefinition sourceMethod, MethodDefinition reflectionMethod, CodeReadinessAspect aspect, string message)
+		public void UnrecognizedReflectionAccessPattern (MethodDefinition sourceMethod, MethodDefinition reflectionMethod, 
+			CodeReadinessAspect aspect, string message, string category)
 		{
 			_context.LogMessage (MessageImportance.Low, message);
 		}

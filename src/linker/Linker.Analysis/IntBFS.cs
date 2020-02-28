@@ -24,7 +24,7 @@ namespace Mono.Linker.Analysis
 									   bool excludePathsToSources = false,
 									   bool [] ignoreEdgesTo = null,
 									   bool [] ignoreEdgesFrom = null,
-									   int [][] ignoreEdges = null,
+									   int [] [] ignoreEdges = null,
 									   Action<IntBFSResult> resultAction = null,
 									   IntMapping<Cecil.MethodDefinition> mapping = null)
 		{
@@ -36,44 +36,63 @@ namespace Mono.Linker.Analysis
 				}
 			}
 			int sourceIndex = 0;
+
 			foreach (var source in sources) {
 				Console.Write ($"\rProcessing source: {sourceIndex++} / {sources.Count}");
-
-				if (neighbors [source] == null)
-					continue;
-
-				foreach (var firstCaller in neighbors [source]) {
-					if (firstCaller == source && !isDestination[firstCaller])
-						continue;
-
-					if (isSource != null && isSource [firstCaller] && firstCaller != source)
-						continue;
-
-					if (!isDestination [firstCaller]) {
-						if (ignoreEdgesFrom != null && ignoreEdgesFrom [firstCaller])
-							continue;
-
-						int [] destinationsToIgnore = ignoreEdges? [source];
-						if (destinationsToIgnore != null && destinationsToIgnore.Contains (firstCaller))
-							continue;
-
-						if (ignoreEdgesTo != null && ignoreEdgesTo [firstCaller])
-							continue;
-					}
-
-					var r = BFS (firstCaller, neighbors,
-								isDestination: isDestination,
-								isSource: isSource, // used to exclude paths that go through a different source
-								ignoreEdgesTo: ignoreEdgesTo,
-								ignoreEdgesFrom: ignoreEdgesFrom,
-								ignoreEdges: ignoreEdges,
-								returnMultiple: true);
-					r.prev [firstCaller] = source;
-					r.prev [source] = source;
-					r.source = source;
-					resultAction (r);
+				if (source == 4057) {
+					Debug.WriteLine ("");
 				}
+
+				var r = BFS (source, neighbors,
+							isDestination: isDestination,
+							isSource: isSource, // used to exclude paths that go through a different source
+							ignoreEdgesTo: ignoreEdgesTo,
+							ignoreEdgesFrom: ignoreEdgesFrom,
+							ignoreEdges: ignoreEdges,
+							returnMultiple: true);
+				r.prev [source] = source;
+				r.source = source;
+				resultAction (r);
 			}
+
+				//foreach (var source in sources) {
+				//	Console.Write ($"\rProcessing source: {sourceIndex++} / {sources.Count}");
+
+				//	if (neighbors [source] == null)
+				//		continue;
+
+				//	foreach (var firstCaller in neighbors [source]) {
+				//		if (firstCaller == source && !isDestination[firstCaller])
+				//			continue;
+
+				//		if (isSource != null && isSource [firstCaller] && firstCaller != source)
+				//			continue;
+
+				//		if (!isDestination [firstCaller]) {
+				//			if (ignoreEdgesFrom != null && ignoreEdgesFrom [firstCaller])
+				//				continue;
+
+				//			int [] destinationsToIgnore = ignoreEdges? [source];
+				//			if (destinationsToIgnore != null && destinationsToIgnore.Contains (firstCaller))
+				//				continue;
+
+				//			if (ignoreEdgesTo != null && ignoreEdgesTo [firstCaller])
+				//				continue;
+				//		}
+
+				//		var r = BFS (firstCaller, neighbors,
+				//					isDestination: isDestination,
+				//					isSource: isSource, // used to exclude paths that go through a different source
+				//					ignoreEdgesTo: ignoreEdgesTo,
+				//					ignoreEdgesFrom: ignoreEdgesFrom,
+				//					ignoreEdges: ignoreEdges,
+				//					returnMultiple: true);
+				//		r.prev [firstCaller] = source;
+				//		r.prev [source] = source;
+				//		r.source = source;
+				//		resultAction (r);
+				//	}
+				//}
 		}
 
 		// find paths from source to destination. selects a shortest path for each destination.
@@ -182,8 +201,8 @@ namespace Mono.Linker.Analysis
 
 					// don't report paths from this source that go through a different source. ignore edges from other sources.
 					// bottom-up, this means we're not reporting paths with multiple interesting methods on the stack.
-					if (isSource != null && isSource [v])
-						continue;
+					//if (isSource != null && isSource [v])
+					//	continue;
 
 					// it's annotated safe (ignoreEdgesTo), it's not a destination and don't queue neighbors.
 					if (ignoreEdgesTo != null && ignoreEdgesTo [v])

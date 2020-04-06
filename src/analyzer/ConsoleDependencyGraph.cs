@@ -98,8 +98,8 @@ namespace LinkerAnalyzer
 		public void ShowAllDependencies ()
 		{
 			Header ("All dependencies");
-			Console.WriteLine ("Types count: {0}", vertices.Count);
-			foreach (var vertex in vertices)
+			Console.WriteLine ("Types count: {0}", Vertices.Count);
+			foreach (var vertex in Vertices)
 				ShowDependencies (vertex);
 		}
 
@@ -136,7 +136,7 @@ namespace LinkerAnalyzer
 			}
 
 			Console.WriteLine ();
-			Console.WriteLine ("Total vertices: {0}", vertices.Count);
+			Console.WriteLine ("Total vertices: {0}", Vertices.Count);
 		}
 
 		public void ShowRoots ()
@@ -144,7 +144,7 @@ namespace LinkerAnalyzer
 			Header ("Root vertices");
 
 			int count = 0;
-			foreach (var vertex in vertices) {
+			foreach (var vertex in Vertices) {
 				if (vertex.parentIndexes == null) {
 					Console.WriteLine ("{0}", vertex.value);
 					count++;
@@ -158,7 +158,7 @@ namespace LinkerAnalyzer
 		public void ShowRawDependencies (string raw)
 		{
 			Header ("Raw dependencies: '{0}'", raw);
-			ShowDependencies (raw, vertices, raw);
+			ShowDependencies (raw, Vertices, raw);
 		}
 
 		public void ShowTypeDependencies (string raw)

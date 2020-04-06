@@ -1,10 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <!--<OutputType>Exe</OutputType>-->
+    <IsPackable>true</IsPackable>
     <RootNamespace>LinkerAnalyzer</RootNamespace>
     <AssemblyName>illinkanalyzer</AssemblyName>
     <Configurations>Debug;Release;illink_Debug;illink_Release</Configurations>
+    <Version>0.0.1-alpha1</Version>
   </PropertyGroup>
 
   <PropertyGroup Condition="$(Configuration.StartsWith('illink'))">

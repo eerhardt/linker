@@ -27,6 +27,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Mono.Cecil;
 
 namespace LinkerAnalyzer.Core
@@ -148,6 +149,14 @@ namespace LinkerAnalyzer.Core
 			if (sizes.ContainsKey (vertex.value))
 				return sizes [vertex.value];
 			return 0;
+		}
+
+		public IEnumerable<KeyValuePair<string, int>> GetLargestNodes(int count, string type = null)
+		{
+			return sizes
+				.Where(kvp => type == null ? true : kvp.Key.StartsWith(type))
+				.OrderByDescending (kvp => kvp.Value)
+				.Take (count);
 		}
 	}
 }

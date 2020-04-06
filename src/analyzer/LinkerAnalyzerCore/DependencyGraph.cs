@@ -30,11 +30,11 @@ namespace LinkerAnalyzer.Core
 
 	public class DependencyGraph
 	{
-		protected List<VertexData> vertices = new List<VertexData> ();
+		public List<VertexData> Vertices = new List<VertexData> ();
 		public List<VertexData> Types = new List<VertexData> ();
 		Dictionary<string, int> indexes = new Dictionary<string, int> ();
 		protected Dictionary<string, int> counts = new Dictionary<string, int> ();
-		internal SpaceAnalyzer SpaceAnalyzer { get; set; }
+		public SpaceAnalyzer SpaceAnalyzer { get; set; }
 
 		public void Load (string filename)
 		{
@@ -88,12 +88,12 @@ namespace LinkerAnalyzer.Core
 			VertexData vertex;
 
 			try {
-				vertex = vertices [indexes [vertexName]];
+				vertex = Vertices [indexes [vertexName]];
 			} catch (KeyNotFoundException) {
 				if (create) {
-					int index = vertices.Count;
+					int index = Vertices.Count;
 					vertex = new VertexData () { value = vertexName, index = index };
-					vertices.Add (vertex);
+					Vertices.Add (vertex);
 					indexes.Add (vertexName, index);
 					string prefix = vertexName.Substring (0, vertexName.IndexOf (':'));
 					if (counts.ContainsKey (prefix))
@@ -113,7 +113,7 @@ namespace LinkerAnalyzer.Core
 
 		public VertexData Vertex (int index)
 		{
-			return vertices [index];
+			return Vertices [index];
 		}
 
 		IEnumerable<Tuple<VertexData, int>> AddDependencies (VertexData vertex, HashSet<int> reachedVertices, int depth)
